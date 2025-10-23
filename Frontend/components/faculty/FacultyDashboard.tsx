@@ -17,6 +17,7 @@ const FacultyDashboard: React.FC = () => {
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<AttendanceRequest | null>(null);
     const [declineReason, setDeclineReason] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
 
 
     const handleDeclineClick = (request: AttendanceRequest) => {
@@ -24,18 +25,36 @@ const FacultyDashboard: React.FC = () => {
         setIsDeclineModalOpen(true);
     };
 
-    const handleConfirmDecline = () => {
-        if (selectedRequest) {
-            updateRequestStatus(selectedRequest.id, RequestStatus.DECLINED, declineReason);
+    const handleConfirmDecline = async () => {
+        if (selectedRequest && !isUpdating) {
+            setIsUpdating(true);
+            try {
+                await updateRequestStatus(selectedRequest.id, RequestStatus.DECLINED, declineReason);
+                setIsDeclineModalOpen(false);
+                setSelectedRequest(null);
+                setDeclineReason('');
+            } catch (error) {
+                console.error('Failed to decline request:', error);
+                alert('Failed to decline request. Please try again.');
+            } finally {
+                setIsUpdating(false);
+            }
         }
-        setIsDeclineModalOpen(false);
-        setSelectedRequest(null);
-        setDeclineReason('');
     };
 
-    const handleApproveClick = (id: string, currentStatus: RequestStatus) => {
-        const nextStatus = currentStatus === RequestStatus.PENDING_MENTOR ? RequestStatus.PENDING_HOD : RequestStatus.APPROVED;
-        updateRequestStatus(id, nextStatus);
+    const handleApproveClick = async (id: string, currentStatus: RequestStatus) => {
+        if (isUpdating) return;
+        
+        setIsUpdating(true);
+        try {
+            const nextStatus = currentStatus === RequestStatus.PENDING_MENTOR ? RequestStatus.PENDING_HOD : RequestStatus.APPROVED;
+            await updateRequestStatus(id, nextStatus);
+        } catch (error) {
+            console.error('Failed to approve request:', error);
+            alert('Failed to approve request. Please try again.');
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
     const renderActions = (request: AttendanceRequest) => (
@@ -44,13 +63,15 @@ const FacultyDashboard: React.FC = () => {
                 variant="success"
                 size="sm"
                 onClick={() => handleApproveClick(request.id, request.status)}
+                disabled={isUpdating}
             >
-                Approve
+                {isUpdating ? 'Processing...' : 'Approve'}
             </Button>
             <Button
                 variant="danger"
                 size="sm"
                 onClick={() => handleDeclineClick(request)}
+                disabled={isUpdating}
             >
                 Decline
             </Button>
@@ -263,8 +284,12 @@ const FacultyDashboard: React.FC = () => {
                         onChange={(e) => setDeclineReason(e.target.value)}
                     />
                     <div className="flex justify-end space-x-3 mt-6">
-                        <Button variant="secondary" onClick={() => setIsDeclineModalOpen(false)}>Cancel</Button>
-                        <Button variant="danger" onClick={handleConfirmDecline}>Confirm Decline</Button>
+                        <Button variant="secondary" onClick={() => setIsDeclineModalOpen(false)} disabled={isUpdating}>
+                            Cancel
+                        </Button>
+                        <Button variant="danger" onClick={handleConfirmDecline} disabled={isUpdating}>
+                            {isUpdating ? 'Declining...' : 'Confirm Decline'}
+                        </Button>
                     </div>
                 </div>
             </Modal>

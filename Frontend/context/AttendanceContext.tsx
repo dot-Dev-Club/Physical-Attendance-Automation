@@ -1,104 +1,98 @@
 
-import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { AttendanceRequest, RequestStatus } from '../types';
-
-type Action =
-    | { type: 'ADD_REQUEST'; payload: AttendanceRequest }
-    | { type: 'UPDATE_STATUS'; payload: { id: string; status: RequestStatus; reason?: string } }
-    | { type: 'LOAD_FROM_SESSION'; payload: AttendanceRequest[] };
+import { attendanceAPI } from '../services/api';
 
 interface State {
     requests: AttendanceRequest[];
+    isLoading: boolean;
+    error: string | null;
 }
-
-// Load data from sessionStorage (temporary cache - cleared on browser close)
-const loadFromSession = (): AttendanceRequest[] => {
-    try {
-        const stored = sessionStorage.getItem('attendance_requests');
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error('Failed to load from sessionStorage:', error);
-        return [];
-    }
-};
-
-// Save data to sessionStorage
-const saveToSession = (requests: AttendanceRequest[]) => {
-    try {
-        sessionStorage.setItem('attendance_requests', JSON.stringify(requests));
-    } catch (error) {
-        console.error('Failed to save to sessionStorage:', error);
-    }
-};
-
-const initialState: State = {
-    requests: [], // Start with empty - will load from session in provider
-};
-
-const attendanceReducer = (state: State, action: Action): State => {
-    let newState: State;
-    
-    switch (action.type) {
-        case 'LOAD_FROM_SESSION':
-            return {
-                ...state,
-                requests: action.payload,
-            };
-        case 'ADD_REQUEST':
-            newState = {
-                ...state,
-                requests: [action.payload, ...state.requests],
-            };
-            saveToSession(newState.requests);
-            return newState;
-        case 'UPDATE_STATUS':
-            newState = {
-                ...state,
-                requests: state.requests.map((req) =>
-                    req.id === action.payload.id
-                        ? { ...req, status: action.payload.status, reason: action.payload.reason || req.reason }
-                        : req
-                ),
-            };
-            saveToSession(newState.requests);
-            return newState;
-        default:
-            return state;
-    }
-};
 
 interface AttendanceContextType {
     state: State;
-    addRequest: (request: Omit<AttendanceRequest, 'id' | 'status'>) => void;
-    updateRequestStatus: (id: string, status: RequestStatus, reason?: string) => void;
+    fetchRequests: () => Promise<void>;
+    addRequest: (request: Omit<AttendanceRequest, 'id' | 'status'>) => Promise<void>;
+    updateRequestStatus: (id: string, status: RequestStatus, reason?: string) => Promise<void>;
+    deleteRequest: (id: string) => Promise<void>;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
 
 export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [state, dispatch] = useReducer(attendanceReducer, initialState);
+    const [state, setState] = useState<State>({
+        requests: [],
+        isLoading: false,
+        error: null,
+    });
 
-    // Load data from sessionStorage on mount
-    useEffect(() => {
-        const sessionData = loadFromSession();
-        dispatch({ type: 'LOAD_FROM_SESSION', payload: sessionData });
-    }, []);
-
-    const addRequest = (request: Omit<AttendanceRequest, 'id' | 'status'>) => {
-        const newRequest: AttendanceRequest = {
-            ...request,
-            id: `req${Date.now()}`,
-            status: RequestStatus.PENDING_MENTOR,
-        };
-        dispatch({ type: 'ADD_REQUEST', payload: newRequest });
+    // Fetch requests from backend
+    const fetchRequests = async () => {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        try {
+            const requests = await attendanceAPI.getRequests();
+            setState(prev => ({ ...prev, requests, isLoading: false }));
+        } catch (error) {
+            console.error('Failed to fetch requests:', error);
+            setState(prev => ({ 
+                ...prev, 
+                isLoading: false, 
+                error: error instanceof Error ? error.message : 'Failed to fetch requests'
+            }));
+        }
     };
 
-    const updateRequestStatus = (id: string, status: RequestStatus, reason?: string) => {
-        dispatch({ type: 'UPDATE_STATUS', payload: { id, status, reason } });
+    // Load requests on mount if user is authenticated
+    useEffect(() => {
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            fetchRequests();
+        }
+    }, []);
+
+    const addRequest = async (request: Omit<AttendanceRequest, 'id' | 'status'>) => {
+        try {
+            // Create request payload for backend (use single day format)
+            await attendanceAPI.createRequest({
+                date: request.date,
+                periods: request.periods,
+                eventCoordinator: request.eventCoordinator,
+                proofFaculty: request.proofFaculty,
+                purpose: request.purpose,
+            });
+            
+            // Refresh requests list
+            await fetchRequests();
+        } catch (error) {
+            console.error('Failed to create request:', error);
+            throw error;
+        }
+    };
+
+    const updateRequestStatus = async (id: string, status: RequestStatus, reason?: string) => {
+        try {
+            await attendanceAPI.updateRequestStatus(id, status, reason);
+            // Refresh requests list
+            await fetchRequests();
+        } catch (error) {
+            console.error('Failed to update request status:', error);
+            throw error;
+        }
+    };
+
+    const deleteRequest = async (id: string) => {
+        try {
+            await attendanceAPI.deleteRequest(id);
+            // Refresh requests list
+            await fetchRequests();
+        } catch (error) {
+            console.error('Failed to delete request:', error);
+            throw error;
+        }
     };
 
     return (
-        <AttendanceContext.Provider value={{ state, addRequest, updateRequestStatus }}>
+        <AttendanceContext.Provider value={{ state, fetchRequests, addRequest, updateRequestStatus, deleteRequest }}>
             {children}
         </AttendanceContext.Provider>
     );

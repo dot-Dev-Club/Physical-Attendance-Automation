@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useAttendance } from '../../context/AttendanceContext';
-import { PERIODS, getMockFaculty } from '../../constants';
+import { PERIODS } from '../../constants';
+import { facultyAPI } from '../../services/api';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -16,10 +17,20 @@ interface DayPeriods {
     periods: number[];
 }
 
+interface FacultyMember {
+    id: string;
+    name: string;
+    title: string;
+    department: string;
+}
+
 const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
     const { user } = useAuth();
     const { addRequest } = useAttendance();
-    const facultyList = getMockFaculty();
+
+    const [facultyList, setFacultyList] = useState<FacultyMember[]>([]);
+    const [isLoadingFaculty, setIsLoadingFaculty] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [isMultipleDays, setIsMultipleDays] = useState(false);
     
@@ -33,8 +44,37 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
     const [dayPeriods, setDayPeriods] = useState<DayPeriods[]>([]);
     
     // Common fields
-    const [eventIncharge, setEventIncharge] = useState(facultyList[0]?.id || '');
+    const [eventIncharge, setEventIncharge] = useState('');
     const [purpose, setPurpose] = useState('');
+
+    // Fetch faculty list on mount
+    useEffect(() => {
+        const loadFaculty = async () => {
+            try {
+                const faculty = await facultyAPI.getAllFaculty();
+                console.log('Faculty loaded:', faculty); // Debug log
+                
+                // Ensure faculty is an array
+                if (Array.isArray(faculty)) {
+                    setFacultyList(faculty);
+                    if (faculty.length > 0) {
+                        setEventIncharge(faculty[0].name);
+                    }
+                } else {
+                    console.error('Faculty response is not an array:', faculty);
+                    setFacultyList([]);
+                    alert('Failed to load faculty list. Please refresh the page.');
+                }
+            } catch (error) {
+                console.error('Failed to load faculty:', error);
+                setFacultyList([]);
+                alert('Failed to load faculty list. Please try again.');
+            } finally {
+                setIsLoadingFaculty(false);
+            }
+        };
+        loadFaculty();
+    }, []);
 
     // Generate dates between fromDate and toDate
     const generateDateRange = (from: string, to: string): string[] => {
@@ -102,53 +142,62 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
         return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !purpose || !eventIncharge) {
             alert('Please fill all required fields.');
             return;
         }
 
-        const selectedFaculty = facultyList.find(f => f.id === eventIncharge);
+        setIsSubmitting(true);
 
-        if (isMultipleDays) {
-            // Validate multiple days
-            if (dayPeriods.length === 0 || dayPeriods.some(dp => dp.periods.length === 0)) {
-                alert('Please select at least one period for each day.');
-                return;
-            }
+        try {
+            if (isMultipleDays) {
+                // Validate multiple days
+                if (dayPeriods.length === 0 || dayPeriods.some(dp => dp.periods.length === 0)) {
+                    alert('Please select at least one period for each day.');
+                    setIsSubmitting(false);
+                    return;
+                }
 
-            // Create separate request for each day
-            dayPeriods.forEach(dp => {
-                addRequest({
+                // Create multiple requests (one for each day)
+                for (const dp of dayPeriods) {
+                    await addRequest({
+                        studentId: user.id,
+                        studentName: user.name,
+                        date: dp.date,
+                        periods: dp.periods.sort((a, b) => a - b),
+                        eventCoordinator: eventIncharge,
+                        proofFaculty: eventIncharge,
+                        purpose,
+                    });
+                }
+            } else {
+                // Single day validation
+                if (!singleDate || singlePeriods.length === 0) {
+                    alert('Please select date and at least one period.');
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                await addRequest({
                     studentId: user.id,
                     studentName: user.name,
-                    date: dp.date,
-                    periods: dp.periods.sort((a, b) => a - b),
-                    eventCoordinator: selectedFaculty?.name || '',
-                    proofFaculty: selectedFaculty?.name || '',
+                    date: singleDate,
+                    periods: singlePeriods.sort((a, b) => a - b),
+                    eventCoordinator: eventIncharge,
+                    proofFaculty: eventIncharge,
                     purpose,
                 });
-            });
-        } else {
-            // Single day validation
-            if (!singleDate || singlePeriods.length === 0) {
-                alert('Please select date and at least one period.');
-                return;
             }
-
-            addRequest({
-                studentId: user.id,
-                studentName: user.name,
-                date: singleDate,
-                periods: singlePeriods.sort((a, b) => a - b),
-                eventCoordinator: selectedFaculty?.name || '',
-                proofFaculty: selectedFaculty?.name || '',
-                purpose,
-            });
+            
+            onClose();
+        } catch (error) {
+            console.error('Failed to submit request:', error);
+            alert('Failed to submit request. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
-        
-        onClose();
     };
 
     return (
@@ -291,10 +340,13 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                         value={eventIncharge}
                         onChange={(e) => setEventIncharge(e.target.value)}
                         required
+                        disabled={isLoadingFaculty}
                     >
-                        <option value="">Select a faculty member</option>
+                        <option value="">
+                            {isLoadingFaculty ? 'Loading faculty...' : 'Select a faculty member'}
+                        </option>
                         {facultyList.map(f => (
-                            <option key={f.id} value={f.id}>
+                            <option key={f.id} value={f.name}>
                                 {f.name} - {f.title}
                             </option>
                         ))}
@@ -321,8 +373,12 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
             </div>
             
             <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-                <Button type="submit">Submit Request</Button>
+                <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting || isLoadingFaculty}>
+                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                </Button>
             </div>
         </form>
     );

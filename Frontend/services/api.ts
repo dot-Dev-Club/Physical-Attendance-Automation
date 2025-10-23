@@ -314,7 +314,9 @@ export const facultyAPI = {
             throw new APIError('Failed to fetch faculty', response.status);
         }
 
-        return await response.json();
+        const data = await response.json();
+        // Backend returns paginated response with {count, results}
+        return data.results || data;
     },
 
     /**
@@ -330,7 +332,9 @@ export const facultyAPI = {
             throw new APIError('Failed to fetch faculty by department', response.status);
         }
 
-        return await response.json();
+        const data = await response.json();
+        // Backend returns paginated response with {count, results}
+        return data.results || data;
     },
 };
 

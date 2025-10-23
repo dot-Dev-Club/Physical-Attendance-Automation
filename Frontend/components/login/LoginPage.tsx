@@ -19,7 +19,8 @@ const LoginPage: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const success = await login(email, password);
+            const role = loginType === 'student' ? 'Student' : 'Faculty';
+            const success = await login(email, password, role as any);
             if (!success) {
                 setError('Invalid email or password. Please try again.');
             }

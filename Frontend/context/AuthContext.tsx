@@ -1,81 +1,79 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, Role } from '../types';
-import { authenticateUser, StudentRecord, FacultyRecord } from '../data/mockDatabase';
+import { authAPI } from '../services/api';
 
 interface AuthContextType {
     user: User | null;
-    login: (email: string, password: string) => Promise<boolean>;
+    login: (email: string, password: string, role: Role) => Promise<boolean>;
     logout: () => void;
+    isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Load user from sessionStorage (temporary cache - cleared on browser close)
-const loadUserFromSession = (): User | null => {
-    try {
-        const stored = sessionStorage.getItem('auth_user');
-        return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-        console.error('Failed to load user from sessionStorage:', error);
-        return null;
-    }
-};
-
-// Save user to sessionStorage
-const saveUserToSession = (user: User | null) => {
-    try {
-        if (user) {
-            sessionStorage.setItem('auth_user', JSON.stringify(user));
-        } else {
-            sessionStorage.removeItem('auth_user');
-        }
-    } catch (error) {
-        console.error('Failed to save user to sessionStorage:', error);
-    }
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Load user from sessionStorage on mount
+    // Load user from backend on mount
     useEffect(() => {
-        const sessionUser = loadUserFromSession();
-        if (sessionUser) {
-            setUser(sessionUser);
-        }
+        const initAuth = async () => {
+            const token = sessionStorage.getItem('token');
+            if (token) {
+                try {
+                    const currentUser = await authAPI.getCurrentUser();
+                    setUser({
+                        id: currentUser.id,
+                        name: currentUser.name,
+                        role: currentUser.role as Role,
+                        isHOD: currentUser.isHOD || false,
+                    });
+                } catch (error) {
+                    console.error('Failed to load user:', error);
+                    sessionStorage.clear();
+                }
+            }
+            setIsLoading(false);
+        };
+
+        initAuth();
     }, []);
 
-    const login = async (email: string, password: string): Promise<boolean> => {
-        // Authenticate against mock database
-        const authenticatedUser = authenticateUser(email, password);
-        
-        if (!authenticatedUser) {
+    const login = async (email: string, password: string, role: Role): Promise<boolean> => {
+        try {
+            const response = await authAPI.login({ email, password, role });
+            
+            // Tokens are already stored by api.ts
+            // Just set user from response
+            const loggedInUser: User = {
+                id: response.user.id,
+                name: response.user.name,
+                role: response.user.role as Role,
+                isHOD: response.user.isHOD || false,
+            };
+            
+            setUser(loggedInUser);
+            return true;
+        } catch (error) {
+            console.error('Login failed:', error);
             return false;
         }
-
-        // Convert database record to User type
-        const loggedInUser: User = {
-            id: authenticatedUser.id,
-            name: authenticatedUser.name,
-            role: authenticatedUser.role,
-            isHOD: 'isHOD' in authenticatedUser ? authenticatedUser.isHOD : false,
-        };
-        
-        setUser(loggedInUser);
-        saveUserToSession(loggedInUser);
-        return true;
     };
 
-    const logout = () => {
-        setUser(null);
-        saveUserToSession(null);
-        // Clear all session data on logout
-        sessionStorage.clear();
+    const logout = async () => {
+        try {
+            await authAPI.logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            setUser(null);
+            sessionStorage.clear();
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );
