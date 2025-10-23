@@ -1,0 +1,23 @@
+# Physical Attendance Automation Backend - Requirements
+# Python 3.10+ required
+
+# Django and Django REST Framework
+Django>=4.2,<5.0
+djangorestframework>=3.14.0
+djangorestframework-simplejwt>=5.3.0
+
+# Database
+psycopg2-binary>=2.9.9
+
+# CORS handling
+django-cors-headers>=4.3.1
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Production server
+gunicorn>=21.2.0
+
+# Development tools (optional)
+django-extensions>=3.2.3
+ipython>=8.18.0

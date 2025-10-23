@@ -1,22 +1,28 @@
 /**
  * API Service Layer
  * 
- * This file will contain all API calls to the Django backend.
- * Currently contains placeholder functions that will be implemented
- * once the backend API is ready.
- * 
- * TODO: 
- * - Add Axios or fetch configuration
- * - Implement authentication endpoints
- * - Implement attendance request CRUD operations
- * - Add error handling and interceptors
- * - Add request/response typing
+ * This file contains all API calls to the Django backend.
+ * Connected to Django backend running at http://localhost:8000/api
  */
 
 import { User, Role, AttendanceRequest, RequestStatus } from '../types';
 
-// TODO: Replace with actual backend URL from environment variables
+// API Base URL - Update this for production
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Helper function to get auth token from sessionStorage
+const getAuthToken = (): string | null => {
+    return sessionStorage.getItem('token');
+};
+
+// Helper function to get auth headers
+const getAuthHeaders = (): HeadersInit => {
+    const token = getAuthToken();
+    return {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+};
 
 /**
  * Authentication API
@@ -27,33 +33,89 @@ export const authAPI = {
      * @param credentials - User login credentials
      * @returns User data and authentication token
      */
-    login: async (credentials: { email: string; password: string }): Promise<{ user: User; token: string }> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+    login: async (credentials: { email: string; password: string; role: Role }): Promise<{ user: User; token: string; refreshToken: string }> => {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(credentials),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new APIError(
+                error.error?.message || 'Login failed',
+                response.status,
+                error.error?.code
+            );
+        }
+
+        const data = await response.json();
+        
+        // Store tokens in sessionStorage
+        sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('refreshToken', data.refreshToken);
+        
+        return data;
     },
 
     /**
      * Logout user
      */
     logout: async (): Promise<void> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        try {
+            const refreshToken = sessionStorage.getItem('refreshToken');
+            await fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ refreshToken }),
+            });
+        } finally {
+            // Clear tokens regardless of API response
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('refreshToken');
+        }
     },
 
     /**
      * Get current user profile
      */
     getCurrentUser: async (): Promise<User> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to fetch user profile', response.status);
+        }
+
+        return await response.json();
     },
 
     /**
      * Refresh authentication token
      */
     refreshToken: async (): Promise<{ token: string }> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        const refreshToken = sessionStorage.getItem('refreshToken');
+        
+        if (!refreshToken) {
+            throw new APIError('No refresh token available', 401);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to refresh token', response.status);
+        }
+
+        const data = await response.json();
+        sessionStorage.setItem('token', data.token);
+        
+        return data;
     },
 };
 
@@ -70,24 +132,77 @@ export const attendanceAPI = {
         dateFrom?: string;
         dateTo?: string;
     }): Promise<AttendanceRequest[]> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        const params = new URLSearchParams();
+        if (filters?.studentId) params.append('studentId', filters.studentId);
+        if (filters?.status) params.append('status', filters.status);
+        if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+        if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+
+        const url = `${API_BASE_URL}/attendance/requests${params.toString() ? '?' + params.toString() : ''}`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to fetch requests', response.status);
+        }
+
+        return await response.json();
     },
 
     /**
      * Get a single attendance request by ID
      */
     getRequestById: async (id: string): Promise<AttendanceRequest> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to fetch request', response.status);
+        }
+
+        return await response.json();
     },
 
     /**
-     * Create new attendance request
+     * Create new attendance request (single or multiple days)
      */
-    createRequest: async (request: Omit<AttendanceRequest, 'id' | 'status'>): Promise<AttendanceRequest> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+    createRequest: async (
+        request: {
+            date?: string;
+            periods?: number[];
+            eventCoordinator?: string;
+            proofFaculty?: string;
+            purpose?: string;
+            requests?: Array<{
+                date: string;
+                periods: number[];
+                eventCoordinator: string;
+                proofFaculty: string;
+                purpose: string;
+            }>;
+        }
+    ): Promise<AttendanceRequest | AttendanceRequest[]> => {
+        const response = await fetch(`${API_BASE_URL}/attendance/requests`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new APIError(
+                error.error?.message || 'Failed to create request',
+                response.status,
+                error.error?.code
+            );
+        }
+
+        return await response.json();
     },
 
     /**
@@ -98,24 +213,87 @@ export const attendanceAPI = {
         status: RequestStatus,
         reason?: string
     ): Promise<AttendanceRequest> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}/status`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ status, reason }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new APIError(
+                error.error?.message || 'Failed to update request status',
+                response.status,
+                error.error?.code
+            );
+        }
+
+        return await response.json();
     },
 
     /**
      * Delete attendance request
      */
     deleteRequest: async (id: string): Promise<void> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new APIError(
+                error.error?.message || 'Failed to delete request',
+                response.status,
+                error.error?.code
+            );
+        }
     },
 
     /**
      * Upload proof document for attendance request
      */
-    uploadProof: async (requestId: string, file: File): Promise<{ url: string }> => {
-        // TODO: Implement actual API call with multipart/form-data
-        throw new Error('API not implemented yet. Backend integration pending.');
+    uploadProof: async (requestId: string, file: File): Promise<{ proofUrl: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const token = getAuthToken();
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${requestId}/proof`, {
+            method: 'POST',
+            headers: {
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to upload proof', response.status);
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Get attendance statistics
+     */
+    getStatistics: async (): Promise<{
+        total: number;
+        pending?: number;
+        pendingMentor?: number;
+        pendingHOD?: number;
+        approved: number;
+        declined: number;
+    }> => {
+        const response = await fetch(`${API_BASE_URL}/attendance/statistics`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to fetch statistics', response.status);
+        }
+
+        return await response.json();
     },
 };
 
@@ -126,24 +304,38 @@ export const facultyAPI = {
     /**
      * Get all faculty members
      */
-    getAllFaculty: async (): Promise<Array<{ id: string; name: string; title: string }>> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+    getAllFaculty: async (): Promise<Array<{ id: string; name: string; title: string; department: string; email: string; isHOD: boolean }>> => {
+        const response = await fetch(`${API_BASE_URL}/faculty`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to fetch faculty', response.status);
+        }
+
+        return await response.json();
     },
 
     /**
      * Get faculty by department
      */
-    getFacultyByDepartment: async (department: string): Promise<Array<{ id: string; name: string; title: string }>> => {
-        // TODO: Implement actual API call
-        throw new Error('API not implemented yet. Backend integration pending.');
+    getFacultyByDepartment: async (department: string): Promise<Array<{ id: string; name: string; title: string; department: string; email: string; isHOD: boolean }>> => {
+        const response = await fetch(`${API_BASE_URL}/faculty/by-department/${encodeURIComponent(department)}`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to fetch faculty by department', response.status);
+        }
+
+        return await response.json();
     },
 };
 
 /**
  * API Error Handler
- * 
- * TODO: Implement comprehensive error handling
  */
 export class APIError extends Error {
     constructor(
@@ -155,13 +347,3 @@ export class APIError extends Error {
         this.name = 'APIError';
     }
 }
-
-/**
- * API Interceptor Configuration
- * 
- * TODO: Add request/response interceptors for:
- * - Adding authentication headers
- * - Handling token refresh
- * - Global error handling
- * - Request/response logging
- */
