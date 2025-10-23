@@ -1,0 +1,5 @@
+{
+  "name": "Physical Attendance System",
+  "description": "A web application for students to request physical attendance for events and for faculty to approve or decline these requests. The system streamlines the process from student application to mentor and HOD approval.",
+  "requestFramePermissions": []
+}
