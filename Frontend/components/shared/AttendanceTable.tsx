@@ -11,9 +11,9 @@ interface AttendanceTableProps {
 }
 
 const AttendanceTable: React.FC<AttendanceTableProps> = ({ requests, title, actionsComponent }) => {
-    if (requests.length === 0) {
+    if (requests.length === 0 && title) {
         return (
-            <Card>
+            <Card className="border border-slate-200 dark:border-slate-700">
                 <CardContent>
                     <div className="text-center py-12">
                          <h3 className="text-lg font-medium text-slate-900 dark:text-white">{title}</h3>
@@ -25,42 +25,96 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ requests, title, acti
     }
     
     return (
-        <Card className="overflow-x-auto">
-            <h3 className="text-lg font-semibold p-4 border-b border-slate-200 dark:border-slate-700">{title}</h3>
-            <div className="relative w-full">
-            <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-300">
-                    <tr>
-                        <th scope="col" className="px-6 py-3">Student</th>
-                        <th scope="col" className="px-6 py-3">Date</th>
-                        <th scope="col" className="px-6 py-3">Periods</th>
-                        <th scope="col" className="px-6 py-3">Coordinator</th>
-                        <th scope="col" className="px-6 py-3">Purpose</th>
-                        <th scope="col" className="px-6 py-3">Status</th>
-                        {actionsComponent && <th scope="col" className="px-6 py-3">Actions</th>}
-                    </tr>
-                </thead>
-                <tbody>
-                    {requests.map((req) => (
-                        <tr key={req.id} className="bg-white border-b dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
-                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{req.studentName}</td>
-                            <td className="px-6 py-4">{req.date}</td>
-                            <td className="px-6 py-4">{req.periods.join(', ')}</td>
-                            <td className="px-6 py-4">{req.eventCoordinator}</td>
-                            <td className="px-6 py-4 max-w-xs truncate" title={req.purpose}>{req.purpose}</td>
-                            <td className="px-6 py-4">
-                                <Badge status={req.status} />
-                                {req.status === 'Declined' && req.reason && (
-                                    <p className="text-xs text-red-500 mt-1" title={req.reason}>Reason: {req.reason.substring(0,20)}...</p>
-                                )}
-                            </td>
-                            {actionsComponent && <td className="px-6 py-4">{actionsComponent(req)}</td>}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            {title && (
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h3>
+                </div>
+            )}
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Student
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Periods
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Coordinator
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Purpose
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Status
+                            </th>
+                            {actionsComponent && (
+                                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            )}
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {requests.map((req) => (
+                            <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-slate-900 dark:text-white">
+                                        {req.studentName}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-slate-700 dark:text-slate-300">
+                                        {new Date(req.date).toLocaleDateString('en-US', { 
+                                            year: 'numeric', 
+                                            month: 'short', 
+                                            day: 'numeric' 
+                                        })}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex flex-wrap gap-1">
+                                        {req.periods.map(p => (
+                                            <span key={p} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                                {p}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="text-sm text-slate-700 dark:text-slate-300 max-w-[150px] truncate" title={req.eventCoordinator}>
+                                        {req.eventCoordinator}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="text-sm text-slate-700 dark:text-slate-300 max-w-[200px] truncate" title={req.purpose}>
+                                        {req.purpose}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <Badge status={req.status} />
+                                    {req.status === 'Declined' && req.reason && (
+                                        <p className="text-xs text-red-600 dark:text-red-400 mt-1 max-w-[150px] truncate" title={req.reason}>
+                                            {req.reason}
+                                        </p>
+                                    )}
+                                </td>
+                                {actionsComponent && (
+                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                        {actionsComponent(req)}
+                                    </td>
+                                )}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
-        </Card>
+        </div>
     );
 };
 

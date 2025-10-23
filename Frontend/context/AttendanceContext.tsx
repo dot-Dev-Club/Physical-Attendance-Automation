@@ -1,29 +1,58 @@
 
-import React, { createContext, useReducer, useContext, ReactNode } from 'react';
+import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
 import { AttendanceRequest, RequestStatus } from '../types';
-import { MOCK_REQUESTS } from '../constants';
 
 type Action =
     | { type: 'ADD_REQUEST'; payload: AttendanceRequest }
-    | { type: 'UPDATE_STATUS'; payload: { id: string; status: RequestStatus; reason?: string } };
+    | { type: 'UPDATE_STATUS'; payload: { id: string; status: RequestStatus; reason?: string } }
+    | { type: 'LOAD_FROM_SESSION'; payload: AttendanceRequest[] };
 
 interface State {
     requests: AttendanceRequest[];
 }
 
+// Load data from sessionStorage (temporary cache - cleared on browser close)
+const loadFromSession = (): AttendanceRequest[] => {
+    try {
+        const stored = sessionStorage.getItem('attendance_requests');
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        console.error('Failed to load from sessionStorage:', error);
+        return [];
+    }
+};
+
+// Save data to sessionStorage
+const saveToSession = (requests: AttendanceRequest[]) => {
+    try {
+        sessionStorage.setItem('attendance_requests', JSON.stringify(requests));
+    } catch (error) {
+        console.error('Failed to save to sessionStorage:', error);
+    }
+};
+
 const initialState: State = {
-    requests: MOCK_REQUESTS,
+    requests: [], // Start with empty - will load from session in provider
 };
 
 const attendanceReducer = (state: State, action: Action): State => {
+    let newState: State;
+    
     switch (action.type) {
-        case 'ADD_REQUEST':
+        case 'LOAD_FROM_SESSION':
             return {
+                ...state,
+                requests: action.payload,
+            };
+        case 'ADD_REQUEST':
+            newState = {
                 ...state,
                 requests: [action.payload, ...state.requests],
             };
+            saveToSession(newState.requests);
+            return newState;
         case 'UPDATE_STATUS':
-            return {
+            newState = {
                 ...state,
                 requests: state.requests.map((req) =>
                     req.id === action.payload.id
@@ -31,6 +60,8 @@ const attendanceReducer = (state: State, action: Action): State => {
                         : req
                 ),
             };
+            saveToSession(newState.requests);
+            return newState;
         default:
             return state;
     }
@@ -46,6 +77,12 @@ const AttendanceContext = createContext<AttendanceContextType | undefined>(undef
 
 export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(attendanceReducer, initialState);
+
+    // Load data from sessionStorage on mount
+    useEffect(() => {
+        const sessionData = loadFromSession();
+        dispatch({ type: 'LOAD_FROM_SESSION', payload: sessionData });
+    }, []);
 
     const addRequest = (request: Omit<AttendanceRequest, 'id' | 'status'>) => {
         const newRequest: AttendanceRequest = {

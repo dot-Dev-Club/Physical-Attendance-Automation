@@ -8,6 +8,7 @@ export interface User {
     id: string;
     name: string;
     role: Role;
+    isHOD?: boolean; // Only applicable for Faculty role
 }
 
 export enum RequestStatus {
