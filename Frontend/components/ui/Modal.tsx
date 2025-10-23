@@ -13,8 +13,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" aria-modal="true" role="dialog" onClick={onClose}>
-        <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                     {title}
                 </h3>
@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
                     </svg>
                 </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1">
                 {children}
             </div>
         </div>
