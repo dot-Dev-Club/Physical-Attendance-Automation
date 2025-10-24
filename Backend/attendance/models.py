@@ -143,9 +143,22 @@ class AttendanceRequest(models.Model):
         default=list,
         help_text="Array of period numbers [1-8] e.g., [1, 2, 3, 4]"
     )
+    period_faculty_mapping = models.JSONField(
+        default=dict,
+        help_text="Mapping of period to faculty ID e.g., {'1': 'faculty-id-1', '2': 'faculty-id-2'}"
+    )
     event_coordinator = models.CharField(
         max_length=255,
         help_text="Name of faculty coordinating the event"
+    )
+    event_coordinator_faculty = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='coordinated_requests',
+        limit_choices_to={'role': 'Faculty'},
+        help_text="Faculty member who is the event coordinator (can approve first)"
     )
     proof_faculty = models.CharField(
         max_length=255,

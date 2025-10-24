@@ -37,6 +37,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
     // Single day mode
     const [singleDate, setSingleDate] = useState('');
     const [singlePeriods, setSinglePeriods] = useState<number[]>([]);
+    const [periodFacultyMapping, setPeriodFacultyMapping] = useState<Record<string, string>>({});
     
     // Multiple days mode
     const [fromDate, setFromDate] = useState('');
@@ -45,6 +46,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
     
     // Common fields
     const [eventIncharge, setEventIncharge] = useState('');
+    const [eventInchargeFacultyId, setEventInchargeFacultyId] = useState('');
     const [purpose, setPurpose] = useState('');
 
     // Fetch faculty list on mount
@@ -59,6 +61,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                     setFacultyList(faculty);
                     if (faculty.length > 0) {
                         setEventIncharge(faculty[0].name);
+                        setEventInchargeFacultyId(faculty[0].id);
                     }
                 } else {
                     console.error('Faculty response is not an array:', faculty);
@@ -118,9 +121,33 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
     };
 
     const handleSinglePeriodChange = (period: number) => {
-        setSinglePeriods(prev => 
-            prev.includes(period) ? prev.filter(p => p !== period) : [...prev, period]
-        );
+        setSinglePeriods(prev => {
+            const newPeriods = prev.includes(period) ? prev.filter(p => p !== period) : [...prev, period];
+            
+            // If period is removed, also remove from faculty mapping
+            if (!newPeriods.includes(period)) {
+                setPeriodFacultyMapping(prevMapping => {
+                    const newMapping = { ...prevMapping };
+                    delete newMapping[period.toString()];
+                    return newMapping;
+                });
+            } else if (!periodFacultyMapping[period.toString()] && facultyList.length > 0) {
+                // Auto-select first faculty for new period
+                setPeriodFacultyMapping(prevMapping => ({
+                    ...prevMapping,
+                    [period.toString()]: facultyList[0].id
+                }));
+            }
+            
+            return newPeriods;
+        });
+    };
+    
+    const handlePeriodFacultyChange = (period: number, facultyId: string) => {
+        setPeriodFacultyMapping(prev => ({
+            ...prev,
+            [period.toString()]: facultyId
+        }));
     };
 
     const handleMultipleDayPeriodChange = (date: string, period: number) => {
@@ -174,6 +201,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                         date: dp.date,
                         periods: dp.periods.sort((a, b) => a - b),
                         eventCoordinator: eventIncharge,
+                        eventCoordinatorFacultyId: eventInchargeFacultyId,
                         proofFaculty: eventIncharge,
                         purpose,
                     });
@@ -185,13 +213,24 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                     setIsSubmitting(false);
                     return;
                 }
+                
+                // Validate all periods have faculty assigned
+                for (const period of singlePeriods) {
+                    if (!periodFacultyMapping[period.toString()]) {
+                        alert(`Please select a faculty for Period ${period}.`);
+                        setIsSubmitting(false);
+                        return;
+                    }
+                }
 
                 await addRequest({
                     studentId: user.id,
                     studentName: user.name,
                     date: singleDate,
                     periods: singlePeriods.sort((a, b) => a - b),
+                    periodFacultyMapping: periodFacultyMapping,
                     eventCoordinator: eventIncharge,
+                    eventCoordinatorFacultyId: eventInchargeFacultyId,
                     proofFaculty: eventIncharge,
                     purpose,
                 });
@@ -272,6 +311,40 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                                 </p>
                             )}
                         </div>
+                        
+                        {/* Faculty selection for each period */}
+                        {singlePeriods.length > 0 && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                                    Select Faculty for Each Period *
+                                </label>
+                                <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                                    {singlePeriods.sort((a, b) => a - b).map(period => (
+                                        <div key={period} className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 min-w-[80px]">
+                                                Period {period}:
+                                            </span>
+                                            <select
+                                                value={periodFacultyMapping[period.toString()] || ''}
+                                                onChange={(e) => handlePeriodFacultyChange(period, e.target.value)}
+                                                className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                required
+                                            >
+                                                <option value="">Select faculty...</option>
+                                                {facultyList.map(faculty => (
+                                                    <option key={faculty.id} value={faculty.id}>
+                                                        {faculty.name} - {faculty.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                    💡 Select the faculty member who teaches each period on this date
+                                </p>
+                            </div>
+                        )}
                     </>
                 ) : (
                     // Multiple Days Mode
@@ -344,7 +417,11 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                         label="Event Incharge Faculty"
                         id="event-incharge"
                         value={eventIncharge}
-                        onChange={(e) => setEventIncharge(e.target.value)}
+                        onChange={(e) => {
+                            const selectedFaculty = facultyList.find(f => f.name === e.target.value);
+                            setEventIncharge(e.target.value);
+                            setEventInchargeFacultyId(selectedFaculty?.id || '');
+                        }}
                         required
                         disabled={isLoadingFaculty}
                     >

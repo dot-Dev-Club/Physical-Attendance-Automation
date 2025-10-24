@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAttendance } from '../../context/AttendanceContext';
+import { attendanceAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { AttendanceRequest, RequestStatus } from '../../types';
 import AttendanceTable from '../shared/AttendanceTable';
@@ -18,6 +19,8 @@ const FacultyDashboard: React.FC = () => {
     const [selectedRequest, setSelectedRequest] = useState<AttendanceRequest | null>(null);
     const [declineReason, setDeclineReason] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const [historyRequests, setHistoryRequests] = useState<AttendanceRequest[]>([]);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
 
     const handleDeclineClick = (request: AttendanceRequest) => {
@@ -90,6 +93,28 @@ const FacultyDashboard: React.FC = () => {
         approved: allRequests.filter(r => r.status === RequestStatus.APPROVED).length,
         declined: allRequests.filter(r => r.status === RequestStatus.DECLINED).length,
     };
+
+    // Load history (for mentor: mentees' requests; for HOD: all)
+    React.useEffect(() => {
+        let mounted = true;
+        const loadHistory = async () => {
+            setIsHistoryLoading(true);
+            try {
+                const results = await attendanceAPI.getRequests({ history: true });
+                if (!mounted) return;
+                // For mentors, API already scopes to mentees when history=true (backend)
+                setHistoryRequests(Array.isArray(results) ? results : []);
+            } catch (err) {
+                console.error('Failed to load history requests:', err);
+                setHistoryRequests([]);
+            } finally {
+                setIsHistoryLoading(false);
+            }
+        };
+
+        loadHistory();
+        return () => { mounted = false; };
+    }, [user]);
 
     return (
         <div className="space-y-6">
@@ -294,6 +319,24 @@ const FacultyDashboard: React.FC = () => {
                     </div>
                 </div>
             </Modal>
+            {/* History Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="p-6">
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">History</h2>
+                    {isHistoryLoading ? (
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Loading history...</p>
+                    ) : historyRequests.length === 0 ? (
+                        <div className="text-center py-8">
+                            <p className="text-sm text-slate-600 dark:text-slate-400">No history available.</p>
+                        </div>
+                    ) : (
+                        <AttendanceTable
+                            requests={historyRequests}
+                            title="Request History"
+                        />
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
