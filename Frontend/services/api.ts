@@ -149,7 +149,9 @@ export const attendanceAPI = {
             throw new APIError('Failed to fetch requests', response.status);
         }
 
-        return await response.json();
+        const data = await response.json();
+        // Handle paginated response from Django REST Framework
+        return Array.isArray(data) ? data : (data.results || []);
     },
 
     /**
