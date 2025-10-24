@@ -26,6 +26,7 @@ export interface AttendanceRequest {
     periods: number[];
     periodFacultyMapping?: Record<string, string>; // period number -> faculty ID
     eventCoordinator: string;
+    eventCoordinatorFacultyId?: string; // ID of faculty who is event coordinator
     proofFaculty: string;
     purpose: string;
     status: RequestStatus;

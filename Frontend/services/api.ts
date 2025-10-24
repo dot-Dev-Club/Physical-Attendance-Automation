@@ -131,12 +131,14 @@ export const attendanceAPI = {
         status?: RequestStatus;
         dateFrom?: string;
         dateTo?: string;
+        history?: boolean;
     }): Promise<AttendanceRequest[]> => {
         const params = new URLSearchParams();
         if (filters?.studentId) params.append('studentId', filters.studentId);
         if (filters?.status) params.append('status', filters.status);
         if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
         if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+        if (filters?.history) params.append('history', 'true');
 
         const url = `${API_BASE_URL}/attendance/requests/${params.toString() ? '?' + params.toString() : ''}`;
         

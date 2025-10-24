@@ -151,6 +151,15 @@ class AttendanceRequest(models.Model):
         max_length=255,
         help_text="Name of faculty coordinating the event"
     )
+    event_coordinator_faculty = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='coordinated_requests',
+        limit_choices_to={'role': 'Faculty'},
+        help_text="Faculty member who is the event coordinator (can approve first)"
+    )
     proof_faculty = models.CharField(
         max_length=255,
         help_text="Name of faculty who can verify attendance"

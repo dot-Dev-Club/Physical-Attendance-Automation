@@ -79,6 +79,8 @@ class AttendanceRequestSerializer(serializers.ModelSerializer):
     studentName = serializers.CharField(source='student.name', read_only=True)
     studentEmail = serializers.EmailField(source='student.email', read_only=True)
     eventCoordinator = serializers.CharField(source='event_coordinator')
+    eventCoordinatorFacultyId = serializers.UUIDField(source='event_coordinator_faculty.id', read_only=True, allow_null=True)
+    eventCoordinatorFacultyName = serializers.CharField(source='event_coordinator_faculty.name', read_only=True, allow_null=True)
     proofFaculty = serializers.CharField(source='proof_faculty')
     periodFacultyMapping = serializers.JSONField(source='period_faculty_mapping', required=False)
     proofUrl = serializers.URLField(source='proof_url', read_only=True, allow_null=True)
@@ -89,7 +91,7 @@ class AttendanceRequestSerializer(serializers.ModelSerializer):
         model = AttendanceRequest
         fields = [
             'id', 'studentId', 'studentName', 'studentEmail',
-            'date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'proofFaculty',
+            'date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'eventCoordinatorFacultyId', 'eventCoordinatorFacultyName', 'proofFaculty',
             'purpose', 'status', 'reason', 'proofUrl',
             'createdAt', 'updatedAt'
         ]
@@ -126,6 +128,7 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
     )
     periodFacultyMapping = serializers.JSONField(required=False)
     eventCoordinator = serializers.CharField(max_length=255, required=False)
+    eventCoordinatorFacultyId = serializers.UUIDField(required=False, allow_null=True)
     proofFaculty = serializers.CharField(max_length=255, required=False)
     purpose = serializers.CharField(required=False)
     
@@ -148,7 +151,7 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
         
         # Validate single day format
         if has_single:
-            required_fields = ['date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'proofFaculty', 'purpose']
+            required_fields = ['date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'eventCoordinatorFacultyId', 'proofFaculty', 'purpose']
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required for single day request")
@@ -162,7 +165,7 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Requests array cannot be empty")
             
             for req in data['requests']:
-                required_fields = ['date', 'periods', 'eventCoordinator', 'proofFaculty', 'purpose']
+                required_fields = ['date', 'periods', 'eventCoordinator', 'eventCoordinatorFacultyId', 'proofFaculty', 'purpose']
                 for field in required_fields:
                     if field not in req:
                         raise serializers.ValidationError(f"{field} is required in each request")

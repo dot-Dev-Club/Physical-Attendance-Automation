@@ -46,6 +46,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
     
     // Common fields
     const [eventIncharge, setEventIncharge] = useState('');
+    const [eventInchargeFacultyId, setEventInchargeFacultyId] = useState('');
     const [purpose, setPurpose] = useState('');
 
     // Fetch faculty list on mount
@@ -60,6 +61,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                     setFacultyList(faculty);
                     if (faculty.length > 0) {
                         setEventIncharge(faculty[0].name);
+                        setEventInchargeFacultyId(faculty[0].id);
                     }
                 } else {
                     console.error('Faculty response is not an array:', faculty);
@@ -199,6 +201,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                         date: dp.date,
                         periods: dp.periods.sort((a, b) => a - b),
                         eventCoordinator: eventIncharge,
+                        eventCoordinatorFacultyId: eventInchargeFacultyId,
                         proofFaculty: eventIncharge,
                         purpose,
                     });
@@ -227,6 +230,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                     periods: singlePeriods.sort((a, b) => a - b),
                     periodFacultyMapping: periodFacultyMapping,
                     eventCoordinator: eventIncharge,
+                    eventCoordinatorFacultyId: eventInchargeFacultyId,
                     proofFaculty: eventIncharge,
                     purpose,
                 });
@@ -413,7 +417,11 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                         label="Event Incharge Faculty"
                         id="event-incharge"
                         value={eventIncharge}
-                        onChange={(e) => setEventIncharge(e.target.value)}
+                        onChange={(e) => {
+                            const selectedFaculty = facultyList.find(f => f.name === e.target.value);
+                            setEventIncharge(e.target.value);
+                            setEventInchargeFacultyId(selectedFaculty?.id || '');
+                        }}
                         required
                         disabled={isLoadingFaculty}
                     >

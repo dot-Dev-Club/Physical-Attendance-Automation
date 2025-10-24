@@ -161,12 +161,27 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
         
         elif user.role == 'Faculty':
             if hasattr(user, 'faculty_profile'):
-                if user.faculty_profile.is_hod:
-                    # HOD sees only PENDING_HOD requests
-                    queryset = queryset.filter(status='PENDING_HOD')
+                is_hod = user.faculty_profile.is_hod
+                # honor history query param
+                history_param = self.request.query_params.get('history')
+                history = str(history_param).lower() in ('1', 'true', 'yes')
+
+                if is_hod:
+                    # HOD: default shows PENDING_HOD; when history=true show all requests
+                    if history:
+                        queryset = queryset  # All requests
+                    else:
+                        queryset = queryset.filter(status='PENDING_HOD')
                 else:
-                    # Mentor sees only PENDING_MENTOR requests
-                    queryset = queryset.filter(status='PENDING_MENTOR')
+                    # Regular Faculty (Event Coordinator): 
+                    # - Default shows PENDING_MENTOR requests where they are the event coordinator
+                    # - History shows all requests where they were event coordinator (approved/declined by them)
+                    if history:
+                        # Show all requests where this faculty was the event coordinator
+                        queryset = queryset.filter(event_coordinator_faculty=user).exclude(status='PENDING_MENTOR')
+                    else:
+                        # Show only PENDING_MENTOR where they are event coordinator
+                        queryset = queryset.filter(status='PENDING_MENTOR', event_coordinator_faculty=user)
         
         # Apply query parameter filters
         student_id = self.request.query_params.get('studentId')
@@ -209,12 +224,29 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
         
         # Handle single day request
         if 'date' in validated_data:
+            # Get event coordinator faculty by ID
+            event_coordinator_faculty_id = validated_data.get('eventCoordinatorFacultyId', validated_data.get('event_coordinator_faculty_id'))
+            event_coordinator_faculty = None
+            if event_coordinator_faculty_id:
+                try:
+                    from .models import User
+                    event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
+                except User.DoesNotExist:
+                    return Response({
+                        'error': {
+                            'message': 'Invalid event coordinator faculty ID',
+                            'code': 'INVALID_FACULTY',
+                            'statusCode': 400
+                        }
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
             attendance_request = AttendanceRequest.objects.create(
                 student=request.user,
                 date=validated_data['date'],
                 periods=validated_data['periods'],
                 period_faculty_mapping=validated_data.get('periodFacultyMapping', validated_data.get('period_faculty_mapping', {})),
                 event_coordinator=validated_data.get('eventCoordinator', validated_data.get('event_coordinator')),
+                event_coordinator_faculty=event_coordinator_faculty,
                 proof_faculty=validated_data.get('proofFaculty', validated_data.get('proof_faculty')),
                 purpose=validated_data['purpose'],
                 status='PENDING_MENTOR'
@@ -224,12 +256,29 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
         # Handle multiple days request
         elif 'requests' in validated_data:
             for req_data in validated_data['requests']:
+                # Get event coordinator faculty by ID
+                event_coordinator_faculty_id = req_data.get('eventCoordinatorFacultyId', req_data.get('event_coordinator_faculty_id'))
+                event_coordinator_faculty = None
+                if event_coordinator_faculty_id:
+                    try:
+                        from .models import User
+                        event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
+                    except User.DoesNotExist:
+                        return Response({
+                            'error': {
+                                'message': f'Invalid event coordinator faculty ID: {event_coordinator_faculty_id}',
+                                'code': 'INVALID_FACULTY',
+                                'statusCode': 400
+                            }
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                
                 attendance_request = AttendanceRequest.objects.create(
                     student=request.user,
                     date=req_data['date'],
                     periods=req_data['periods'],
                     period_faculty_mapping=req_data.get('periodFacultyMapping', req_data.get('period_faculty_mapping', {})),
                     event_coordinator=req_data.get('eventCoordinator', req_data.get('event_coordinator')),
+                    event_coordinator_faculty=event_coordinator_faculty,
                     proof_faculty=req_data.get('proofFaculty', req_data.get('proof_faculty')),
                     purpose=req_data['purpose'],
                     status='PENDING_MENTOR'
