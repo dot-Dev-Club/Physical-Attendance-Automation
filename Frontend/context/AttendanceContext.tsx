@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { AttendanceRequest, RequestStatus } from '../types';
 import { attendanceAPI } from '../services/api';
+import { useAuth } from './AuthContext';
 
 interface State {
     requests: AttendanceRequest[];
@@ -20,6 +21,7 @@ interface AttendanceContextType {
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
 
 export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const { user } = useAuth();
     const [state, setState] = useState<State>({
         requests: [],
         isLoading: false,
@@ -45,13 +47,20 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
         }
     };
 
-    // Load requests on mount if user is authenticated
+    // Load requests whenever user changes (login/logout)
     useEffect(() => {
-        const token = sessionStorage.getItem('token');
-        if (token) {
+        if (user) {
+            // User is logged in, fetch their requests
             fetchRequests();
+        } else {
+            // User logged out, clear requests
+            setState({
+                requests: [],
+                isLoading: false,
+                error: null,
+            });
         }
-    }, []);
+    }, [user]);
 
     const addRequest = async (request: Omit<AttendanceRequest, 'id' | 'status'>) => {
         try {
