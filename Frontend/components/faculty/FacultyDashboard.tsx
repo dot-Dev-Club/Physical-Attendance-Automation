@@ -78,9 +78,10 @@ const FacultyDashboard: React.FC = () => {
         </div>
     );
 
-    const mentorRequests = state.requests.filter(req => req.status === RequestStatus.PENDING_MENTOR);
-    const hodRequests = state.requests.filter(req => req.status === RequestStatus.PENDING_HOD);
-    const allRequests = state.requests;
+    // Ensure requests is always an array
+    const allRequests = Array.isArray(state.requests) ? state.requests : [];
+    const mentorRequests = allRequests.filter(req => req.status === RequestStatus.PENDING_MENTOR);
+    const hodRequests = allRequests.filter(req => req.status === RequestStatus.PENDING_HOD);
 
     const stats = {
         total: allRequests.length,

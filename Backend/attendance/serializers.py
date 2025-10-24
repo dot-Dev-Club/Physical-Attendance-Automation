@@ -4,7 +4,6 @@ Serializers for Physical Attendance Automation API.
 Based on BACKEND_INTEGRATION.md specifications.
 """
 from rest_framework import serializers
-from django.contrib.auth import authenticate
 from .models import User, Faculty, Student, AttendanceRequest
 
 
@@ -42,27 +41,19 @@ class LoginSerializer(serializers.Serializer):
         if not email or not password:
             raise serializers.ValidationError("Email and password are required")
         
-        # Authenticate user
-        user = authenticate(username=email, password=password)
+        # Try to get user by email first
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password")
         
-        if not user:
-            raise serializers.ValidationError({
-                'error': {
-                    'message': 'Invalid email or password',
-                    'code': 'INVALID_CREDENTIALS',
-                    'statusCode': 401
-                }
-            })
+        # Check password
+        if not user.check_password(password):
+            raise serializers.ValidationError("Invalid email or password")
         
         # Verify role matches
         if user.role != role:
-            raise serializers.ValidationError({
-                'error': {
-                    'message': f'User is not a {role}',
-                    'code': 'INVALID_CREDENTIALS',
-                    'statusCode': 401
-                }
-            })
+            raise serializers.ValidationError(f"Invalid credentials for {role} login")
         
         data['user'] = user
         return data

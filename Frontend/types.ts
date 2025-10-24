@@ -12,10 +12,10 @@ export interface User {
 }
 
 export enum RequestStatus {
-    PENDING_MENTOR = 'Pending (Mentor)',
-    PENDING_HOD = 'Pending (HOD)',
-    APPROVED = 'Approved',
-    DECLINED = 'Declined',
+    PENDING_MENTOR = 'PENDING_MENTOR',
+    PENDING_HOD = 'PENDING_HOD',
+    APPROVED = 'APPROVED',
+    DECLINED = 'DECLINED',
 }
 
 export interface AttendanceRequest {

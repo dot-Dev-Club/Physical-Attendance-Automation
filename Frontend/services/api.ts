@@ -34,7 +34,7 @@ export const authAPI = {
      * @returns User data and authentication token
      */
     login: async (credentials: { email: string; password: string; role: Role }): Promise<{ user: User; token: string; refreshToken: string }> => {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const response = await fetch(`${API_BASE_URL}/auth/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(credentials),
@@ -64,7 +64,7 @@ export const authAPI = {
     logout: async (): Promise<void> => {
         try {
             const refreshToken = sessionStorage.getItem('refreshToken');
-            await fetch(`${API_BASE_URL}/auth/logout`, {
+            await fetch(`${API_BASE_URL}/auth/logout/`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({ refreshToken }),
@@ -80,7 +80,7 @@ export const authAPI = {
      * Get current user profile
      */
     getCurrentUser: async (): Promise<User> => {
-        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        const response = await fetch(`${API_BASE_URL}/auth/me/`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
@@ -102,7 +102,7 @@ export const authAPI = {
             throw new APIError('No refresh token available', 401);
         }
 
-        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
@@ -138,7 +138,7 @@ export const attendanceAPI = {
         if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
         if (filters?.dateTo) params.append('dateTo', filters.dateTo);
 
-        const url = `${API_BASE_URL}/attendance/requests${params.toString() ? '?' + params.toString() : ''}`;
+        const url = `${API_BASE_URL}/attendance/requests/${params.toString() ? '?' + params.toString() : ''}`;
         
         const response = await fetch(url, {
             method: 'GET',
@@ -149,14 +149,16 @@ export const attendanceAPI = {
             throw new APIError('Failed to fetch requests', response.status);
         }
 
-        return await response.json();
+        const data = await response.json();
+        // Backend returns paginated response with {count, results}
+        return data.results || data;
     },
 
     /**
      * Get a single attendance request by ID
      */
     getRequestById: async (id: string): Promise<AttendanceRequest> => {
-        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}/`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
@@ -187,7 +189,7 @@ export const attendanceAPI = {
             }>;
         }
     ): Promise<AttendanceRequest | AttendanceRequest[]> => {
-        const response = await fetch(`${API_BASE_URL}/attendance/requests`, {
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(request),
@@ -213,7 +215,7 @@ export const attendanceAPI = {
         status: RequestStatus,
         reason?: string
     ): Promise<AttendanceRequest> => {
-        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}/status`, {
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}/status/`, {
             method: 'PATCH',
             headers: getAuthHeaders(),
             body: JSON.stringify({ status, reason }),
@@ -235,7 +237,7 @@ export const attendanceAPI = {
      * Delete attendance request
      */
     deleteRequest: async (id: string): Promise<void> => {
-        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${id}/`, {
             method: 'DELETE',
             headers: getAuthHeaders(),
         });
@@ -258,7 +260,7 @@ export const attendanceAPI = {
         formData.append('file', file);
 
         const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}/attendance/requests/${requestId}/proof`, {
+        const response = await fetch(`${API_BASE_URL}/attendance/requests/${requestId}/proof/`, {
             method: 'POST',
             headers: {
                 ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -284,7 +286,7 @@ export const attendanceAPI = {
         approved: number;
         declined: number;
     }> => {
-        const response = await fetch(`${API_BASE_URL}/attendance/statistics`, {
+        const response = await fetch(`${API_BASE_URL}/attendance/statistics/`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
@@ -305,7 +307,7 @@ export const facultyAPI = {
      * Get all faculty members
      */
     getAllFaculty: async (): Promise<Array<{ id: string; name: string; title: string; department: string; email: string; isHOD: boolean }>> => {
-        const response = await fetch(`${API_BASE_URL}/faculty`, {
+        const response = await fetch(`${API_BASE_URL}/faculty/`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
@@ -323,7 +325,7 @@ export const facultyAPI = {
      * Get faculty by department
      */
     getFacultyByDepartment: async (department: string): Promise<Array<{ id: string; name: string; title: string; department: string; email: string; isHOD: boolean }>> => {
-        const response = await fetch(`${API_BASE_URL}/faculty/by-department/${encodeURIComponent(department)}`, {
+        const response = await fetch(`${API_BASE_URL}/faculty/by-department/${encodeURIComponent(department)}/`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
