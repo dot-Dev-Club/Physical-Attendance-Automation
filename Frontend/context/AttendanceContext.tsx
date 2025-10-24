@@ -31,11 +31,14 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const requests = await attendanceAPI.getRequests();
-            setState(prev => ({ ...prev, requests, isLoading: false }));
+            // Ensure requests is always an array
+            const requestsArray = Array.isArray(requests) ? requests : [];
+            setState(prev => ({ ...prev, requests: requestsArray, isLoading: false }));
         } catch (error) {
             console.error('Failed to fetch requests:', error);
             setState(prev => ({ 
                 ...prev, 
+                requests: [], // Reset to empty array on error
                 isLoading: false, 
                 error: error instanceof Error ? error.message : 'Failed to fetch requests'
             }));

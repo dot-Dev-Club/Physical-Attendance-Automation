@@ -41,15 +41,31 @@ const statusConfig: Record<RequestStatus, { styles: string; icon: React.ReactNod
   },
 };
 
+const statusLabels: Record<RequestStatus, string> = {
+  [RequestStatus.PENDING_MENTOR]: 'Pending (Mentor)',
+  [RequestStatus.PENDING_HOD]: 'Pending (HOD)',
+  [RequestStatus.APPROVED]: 'Approved',
+  [RequestStatus.DECLINED]: 'Declined',
+};
+
 const Badge: React.FC<BadgeProps> = ({ status }) => {
   const config = statusConfig[status];
+  
+  // If config is undefined, return a default badge
+  if (!config) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+        {status}
+      </span>
+    );
+  }
   
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold ${config.styles}`}
     >
       {config.icon}
-      {status}
+      {statusLabels[status] || status}
     </span>
   );
 };

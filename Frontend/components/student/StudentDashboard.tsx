@@ -14,7 +14,9 @@ const StudentDashboard: React.FC = () => {
     const { state } = useAttendance();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const myRequests = state.requests.filter(req => req.studentId === user?.id);
+    // Ensure requests is always an array
+    const allRequests = Array.isArray(state.requests) ? state.requests : [];
+    const myRequests = allRequests.filter(req => req.studentId === user?.id);
     
     const stats = {
         total: myRequests.length,

@@ -149,6 +149,12 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
             return;
         }
 
+        // Validate purpose length (minimum 10 characters)
+        if (purpose.trim().length < 10) {
+            alert('Purpose must be at least 10 characters long. Please provide more details about the event.');
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -359,6 +365,9 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                 <div>
                     <label htmlFor="purpose" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Purpose / Event Details *
+                        <span className={`ml-2 text-xs ${purpose.trim().length >= 10 ? 'text-green-600' : 'text-red-600'}`}>
+                            ({purpose.trim().length}/10 characters minimum)
+                        </span>
                     </label>
                     <textarea
                         id="purpose"
@@ -366,7 +375,7 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200"
                         value={purpose}
                         onChange={(e) => setPurpose(e.target.value)}
-                        placeholder="Describe the event/activity and reason for attendance request..."
+                        placeholder="Describe the event/activity and reason for attendance request (minimum 10 characters)..."
                         required
                     />
                 </div>

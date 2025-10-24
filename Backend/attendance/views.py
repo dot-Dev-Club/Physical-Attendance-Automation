@@ -213,8 +213,8 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                 student=request.user,
                 date=validated_data['date'],
                 periods=validated_data['periods'],
-                event_coordinator=validated_data['eventCoordinator'],
-                proof_faculty=validated_data['proofFaculty'],
+                event_coordinator=validated_data.get('eventCoordinator', validated_data.get('event_coordinator')),
+                proof_faculty=validated_data.get('proofFaculty', validated_data.get('proof_faculty')),
                 purpose=validated_data['purpose'],
                 status='PENDING_MENTOR'
             )
@@ -227,8 +227,8 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                     student=request.user,
                     date=req_data['date'],
                     periods=req_data['periods'],
-                    event_coordinator=req_data['eventCoordinator'],
-                    proof_faculty=req_data['proofFaculty'],
+                    event_coordinator=req_data.get('eventCoordinator', req_data.get('event_coordinator')),
+                    proof_faculty=req_data.get('proofFaculty', req_data.get('proof_faculty')),
                     purpose=req_data['purpose'],
                     status='PENDING_MENTOR'
                 )
