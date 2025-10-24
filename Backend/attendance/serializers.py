@@ -80,6 +80,7 @@ class AttendanceRequestSerializer(serializers.ModelSerializer):
     studentEmail = serializers.EmailField(source='student.email', read_only=True)
     eventCoordinator = serializers.CharField(source='event_coordinator')
     proofFaculty = serializers.CharField(source='proof_faculty')
+    periodFacultyMapping = serializers.JSONField(source='period_faculty_mapping', required=False)
     proofUrl = serializers.URLField(source='proof_url', read_only=True, allow_null=True)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
     updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
@@ -88,7 +89,7 @@ class AttendanceRequestSerializer(serializers.ModelSerializer):
         model = AttendanceRequest
         fields = [
             'id', 'studentId', 'studentName', 'studentEmail',
-            'date', 'periods', 'eventCoordinator', 'proofFaculty',
+            'date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'proofFaculty',
             'purpose', 'status', 'reason', 'proofUrl',
             'createdAt', 'updatedAt'
         ]
@@ -123,6 +124,7 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=1, max_value=8),
         required=False
     )
+    periodFacultyMapping = serializers.JSONField(required=False)
     eventCoordinator = serializers.CharField(max_length=255, required=False)
     proofFaculty = serializers.CharField(max_length=255, required=False)
     purpose = serializers.CharField(required=False)
@@ -146,7 +148,7 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
         
         # Validate single day format
         if has_single:
-            required_fields = ['date', 'periods', 'eventCoordinator', 'proofFaculty', 'purpose']
+            required_fields = ['date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'proofFaculty', 'purpose']
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required for single day request")

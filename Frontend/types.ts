@@ -24,6 +24,7 @@ export interface AttendanceRequest {
     studentName: string;
     date: string;
     periods: number[];
+    periodFacultyMapping?: Record<string, string>; // period number -> faculty ID
     eventCoordinator: string;
     proofFaculty: string;
     purpose: string;
@@ -35,4 +36,6 @@ export interface Faculty {
     id: string;
     name: string;
     title: string;
+    department?: string;
+    email?: string;
 }

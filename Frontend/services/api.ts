@@ -177,12 +177,14 @@ export const attendanceAPI = {
         request: {
             date?: string;
             periods?: number[];
+            periodFacultyMapping?: Record<string, string>;
             eventCoordinator?: string;
             proofFaculty?: string;
             purpose?: string;
             requests?: Array<{
                 date: string;
                 periods: number[];
+                periodFacultyMapping?: Record<string, string>;
                 eventCoordinator: string;
                 proofFaculty: string;
                 purpose: string;

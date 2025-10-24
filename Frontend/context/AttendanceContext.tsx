@@ -68,6 +68,7 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
             await attendanceAPI.createRequest({
                 date: request.date,
                 periods: request.periods,
+                periodFacultyMapping: request.periodFacultyMapping,
                 eventCoordinator: request.eventCoordinator,
                 proofFaculty: request.proofFaculty,
                 purpose: request.purpose,

@@ -143,6 +143,10 @@ class AttendanceRequest(models.Model):
         default=list,
         help_text="Array of period numbers [1-8] e.g., [1, 2, 3, 4]"
     )
+    period_faculty_mapping = models.JSONField(
+        default=dict,
+        help_text="Mapping of period to faculty ID e.g., {'1': 'faculty-id-1', '2': 'faculty-id-2'}"
+    )
     event_coordinator = models.CharField(
         max_length=255,
         help_text="Name of faculty coordinating the event"

@@ -213,6 +213,7 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                 student=request.user,
                 date=validated_data['date'],
                 periods=validated_data['periods'],
+                period_faculty_mapping=validated_data.get('periodFacultyMapping', validated_data.get('period_faculty_mapping', {})),
                 event_coordinator=validated_data.get('eventCoordinator', validated_data.get('event_coordinator')),
                 proof_faculty=validated_data.get('proofFaculty', validated_data.get('proof_faculty')),
                 purpose=validated_data['purpose'],
@@ -227,6 +228,7 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                     student=request.user,
                     date=req_data['date'],
                     periods=req_data['periods'],
+                    period_faculty_mapping=req_data.get('periodFacultyMapping', req_data.get('period_faculty_mapping', {})),
                     event_coordinator=req_data.get('eventCoordinator', req_data.get('event_coordinator')),
                     proof_faculty=req_data.get('proofFaculty', req_data.get('proof_faculty')),
                     purpose=req_data['purpose'],
@@ -354,9 +356,74 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
             instance.reason = reason
         instance.save()
         
+        # Send email notifications to period faculty when HOD approves
+        if new_status == 'APPROVED' and current_status == 'PENDING_HOD':
+            self._send_faculty_notifications(instance)
+        
         # Serialize and return
         response_serializer = AttendanceRequestSerializer(instance)
         return Response(response_serializer.data)
+    
+    def _send_faculty_notifications(self, request_instance):
+        """Send email notifications to faculty members for their respective periods."""
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            period_faculty_mapping = request_instance.period_faculty_mapping
+            if not period_faculty_mapping:
+                return
+            
+            # Get unique faculty IDs
+            faculty_ids = set(period_faculty_mapping.values())
+            
+            for faculty_id in faculty_ids:
+                try:
+                    faculty_user = User.objects.get(id=faculty_id, role='Faculty')
+                    
+                    # Find which periods this faculty handles
+                    their_periods = [period for period, fac_id in period_faculty_mapping.items() if fac_id == faculty_id]
+                    periods_str = ', '.join(sorted(their_periods))
+                    
+                    # Email content
+                    subject = f'Physical Attendance Approved - {request_instance.student.get_full_name()}'
+                    message = f"""
+Dear {faculty_user.get_full_name()},
+
+A physical attendance request has been approved for your class(es).
+
+Student Details:
+- Name: {request_instance.student.get_full_name()}
+- Email: {request_instance.student.email}
+- Date: {request_instance.date.strftime('%B %d, %Y')}
+- Your Period(s): {periods_str}
+
+Event Details:
+- Purpose: {request_instance.purpose}
+- Event Coordinator: {request_instance.event_coordinator}
+
+The student has been granted physical attendance for the above period(s) in your class.
+
+Best regards,
+Attendance Management System
+                    """
+                    
+                    send_mail(
+                        subject=subject,
+                        message=message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[faculty_user.email],
+                        fail_silently=True,
+                    )
+                except User.DoesNotExist:
+                    continue
+                except Exception as e:
+                    print(f"Failed to send email to faculty {faculty_id}: {str(e)}")
+                    continue
+                    
+        except Exception as e:
+            print(f"Failed to send faculty notifications: {str(e)}")
+            # Don't fail the request if email fails
 
 
 # ============================================================================
