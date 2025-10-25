@@ -43,7 +43,7 @@ const statusConfig: Record<RequestStatus, { styles: string; icon: React.ReactNod
 
 const statusLabels: Record<RequestStatus, string> = {
   [RequestStatus.PENDING_MENTOR]: 'Pending (Mentor)',
-  [RequestStatus.PENDING_HOD]: 'Pending (HOD)',
+  [RequestStatus.PENDING_HOD]: 'Mentor Approved',
   [RequestStatus.APPROVED]: 'Approved',
   [RequestStatus.DECLINED]: 'Declined',
 };

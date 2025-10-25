@@ -186,7 +186,7 @@ const FacultyDashboard: React.FC = () => {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wide">
-                                        HOD Queue
+                                        Mentor Approved
                                     </p>
                                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-1">
                                         {stats.hodPending}
@@ -256,7 +256,7 @@ const FacultyDashboard: React.FC = () => {
                                     </svg>
                                 </div>
                                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                                    No pending HOD approvals
+                                    No mentor approved requests
                                 </h3>
                                 <p className="text-sm text-slate-600 dark:text-slate-400">
                                     Requests approved by mentors will appear here for your review.
