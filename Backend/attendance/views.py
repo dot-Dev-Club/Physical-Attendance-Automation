@@ -425,14 +425,14 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
         
         # Send email notifications to period faculty when HOD approves
         if new_status == 'APPROVED' and current_status == 'PENDING_HOD':
-            self._send_faculty_notifications(instance)
+            self._send_faculty_notifications(instance, request.user)
         
         # Serialize and return
         response_serializer = AttendanceRequestSerializer(instance)
         return Response(response_serializer.data)
     
-    def _send_faculty_notifications(self, request_instance):
-        """Send email notifications to faculty members for their respective periods."""
+    def _send_faculty_notifications(self, request_instance, hod_user):
+        """Send email notifications to faculty members for their respective periods from HOD's email."""
         try:
             from django.core.mail import send_mail
             from django.conf import settings
@@ -440,6 +440,12 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
             period_faculty_mapping = request_instance.period_faculty_mapping
             if not period_faculty_mapping:
                 return
+            
+            # Get HOD's name and email
+            hod_name = hod_user.get_full_name()
+            hod_email = hod_user.email
+            hod_faculty_profile = hod_user.faculty_profile if hasattr(hod_user, 'faculty_profile') else None
+            hod_title = hod_faculty_profile.title if hod_faculty_profile else "HOD"
             
             # Get unique faculty IDs
             faculty_ids = set(period_faculty_mapping.values())
@@ -450,46 +456,65 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                     
                     # Find which periods this faculty handles
                     their_periods = [period for period, fac_id in period_faculty_mapping.items() if fac_id == faculty_id]
-                    periods_str = ', '.join(sorted(their_periods))
+                    periods_str = ', '.join(f"Period {p}" for p in sorted(their_periods, key=int))
                     
                     # Email content
-                    subject = f'Physical Attendance Approved - {request_instance.student.get_full_name()}'
-                    message = f"""
-Dear {faculty_user.get_full_name()},
+                    subject = f'Physical Attendance Approved - {request_instance.student.get_full_name()} - {request_instance.date.strftime("%d-%m-%Y")}'
+                    
+                    message = f"""Dear {faculty_user.get_full_name()},
 
-A physical attendance request has been approved for your class(es).
+I hope this email finds you well.
 
-Student Details:
-- Name: {request_instance.student.get_full_name()}
-- Email: {request_instance.student.email}
-- Date: {request_instance.date.strftime('%B %d, %Y')}
-- Your Period(s): {periods_str}
+This is to inform you that a physical attendance request has been approved for the following student:
 
-Event Details:
-- Purpose: {request_instance.purpose}
-- Event Coordinator: {request_instance.event_coordinator}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STUDENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Name:          {request_instance.student.get_full_name()}
+Email:         {request_instance.student.email}
+Date:          {request_instance.date.strftime('%B %d, %Y')} ({request_instance.date.strftime('%A')})
+Your Period(s): {periods_str}
 
-The student has been granted physical attendance for the above period(s) in your class.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EVENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Purpose:            {request_instance.purpose}
+Event Coordinator:  {request_instance.event_coordinator}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The student has been granted physical attendance for the mentioned period(s) in your class. Please mark their attendance accordingly.
+
+If you have any questions or concerns regarding this approval, please feel free to contact me.
 
 Best regards,
-Attendance Management System
+{hod_name}
+{hod_title}
+{hod_email}
+
+---
+This is an automated notification from the Attendance Management System.
                     """
                     
                     send_mail(
                         subject=subject,
                         message=message,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        from_email=f"{hod_name} <{hod_email}>",  # Send from HOD's email
                         recipient_list=[faculty_user.email],
-                        fail_silently=True,
+                        fail_silently=False,  # Raise exception if email fails (for debugging)
                     )
+                    
+                    print(f"✓ Email sent to {faculty_user.get_full_name()} ({faculty_user.email}) for periods: {periods_str}")
+                    
                 except User.DoesNotExist:
+                    print(f"✗ Faculty user not found: {faculty_id}")
                     continue
                 except Exception as e:
-                    print(f"Failed to send email to faculty {faculty_id}: {str(e)}")
+                    print(f"✗ Failed to send email to faculty {faculty_id}: {str(e)}")
                     continue
                     
         except Exception as e:
-            print(f"Failed to send faculty notifications: {str(e)}")
+            print(f"✗ Failed to send faculty notifications: {str(e)}")
             # Don't fail the request if email fails
 
 
