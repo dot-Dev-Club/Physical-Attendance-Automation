@@ -30,7 +30,7 @@ Physical-Attendance-Automation/
 
 ### Prerequisites
 - Node.js (v18+)
-- npm or yarn
+- npm
 
 ### Installation
 
