@@ -1,158 +1,340 @@
 # Physical Attendance Automation System
 
-A modern web application for managing student physical attendance requests in educational institutions with a two-tier faculty approval workflow.
+A modern full-stack web application for managing student physical attendance requests in educational institutions with a two-tier faculty approval workflow and automated email notifications.
 
 ## 🎯 Overview
 
-This system allows students to request attendance approval for participating in physical events/activities during class hours. Requests go through a two-stage approval process:
-1. **Mentor Approval** - First level review
-2. **HOD Approval** - Final approval
+This system streamlines the process of managing student attendance for physical events/activities during class hours. Students can submit requests that go through a comprehensive two-stage approval process:
+1. **Mentor Approval** - First level review by assigned faculty mentor
+2. **HOD Approval** - Final approval by Head of Department
+
+Upon HOD approval, automated email notifications are sent to all relevant faculty members for seamless attendance tracking.
 
 ## 📁 Project Structure
 
 ```
 Physical-Attendance-Automation/
-├── Backend/              # Django REST API (in development)
-│   └── main.py
-├── Frontend/             # React + TypeScript
-│   ├── components/       # React components
-│   │   ├── faculty/      # Faculty dashboard
-│   │   ├── student/      # Student dashboard
-│   │   ├── login/        # Authentication
-│   │   ├── shared/       # Shared components
-│   │   └── ui/           # UI component library
-│   ├── context/          # React Context providers
-│   └── types.ts          # TypeScript definitions
+├── Backend/                    # Django REST API
+│   ├── attendance/             # Main app
+│   │   ├── models.py          # Database models
+│   │   ├── serializers.py     # DRF serializers
+│   │   ├── views.py           # API endpoints
+│   │   ├── permissions.py     # Custom permissions
+│   │   └── urls.py            # URL routing
+│   ├── config/                # Django settings
+│   ├── manage.py              # Django CLI
+│   ├── .env                   # Environment variables
+│   ├── requirements.txt       # Python dependencies
+│   └── EMAIL_SETUP_GUIDE.md  # Email configuration guide
+├── Frontend/                   # React + TypeScript
+│   ├── components/            # React components
+│   │   ├── faculty/           # Faculty dashboard & views
+│   │   ├── student/           # Student dashboard & forms
+│   │   ├── login/             # Authentication pages
+│   │   ├── shared/            # Shared components
+│   │   └── ui/                # UI component library
+│   ├── context/               # React Context providers
+│   ├── services/              # API integration
+│   ├── types.ts               # TypeScript definitions
+│   └── .env                   # Frontend config
 └── README.md
 ```
 
-## 🚀 Frontend Setup
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18+)
-- npm
+- **Node.js** (v18+)
+- **Python** (v3.10+)
+- **PostgreSQL** (v14+)
+- **npm** or **yarn**
 
-### Installation
+### Backend Setup
 
+1. **Navigate to Backend directory:**
+```bash
+cd Backend
+```
+
+2. **Create virtual environment:**
+```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1  # Windows
+# or
+source .venv/bin/activate    # Linux/Mac
+```
+
+3. **Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Configure environment variables:**
+   - Copy `.env.example` to `.env`
+   - Update database credentials
+   - Configure email settings (see `EMAIL_SETUP_GUIDE.md`)
+
+5. **Run migrations:**
+```bash
+python manage.py migrate
+```
+
+6. **Create superuser (optional):**
+```bash
+python manage.py createsuperuser
+```
+
+7. **Start development server:**
+```bash
+python manage.py runserver
+```
+
+### Frontend Setup
+
+1. **Navigate to Frontend directory:**
 ```bash
 cd Frontend
+```
+
+2. **Install dependencies:**
+```bash
 npm install
 ```
 
-### Development
+3. **Configure environment:**
+   - Update `.env` with backend API URL:
+   ```env
+   VITE_API_URL=YOUR_VITE_API_URL
+   ```
 
+4. **Start development server:**
 ```bash
 npm run dev
 ```
 
-The application will start at `http://localhost:3000`
-
-### Build for Production
+### Production Build
 
 ```bash
+# Frontend
 npm run build
+
+# Backend
+python manage.py collectstatic
 ```
 
 ## 🔧 Tech Stack
 
 ### Frontend
-- **React 19.2.0** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **Context API** - State management
+- **React 19.2.0** - Modern UI framework
+- **TypeScript** - Type-safe development
+- **Vite 6.4.1** - Lightning-fast build tool
+- **Tailwind CSS** - Utility-first styling
+- **Axios** - HTTP client for API calls
+- **React Context API** - State management
+- **Lucide React** - Beautiful icons
 
-### Backend (In Development)
-- **Django** - Python web framework
-- **PostgreSQL** - Database
+### Backend
+- **Django 4.2.25** - Robust Python web framework
+- **Django REST Framework** - API development
+- **PostgreSQL** - Relational database
+- **psycopg2** - PostgreSQL adapter
+- **djangorestframework-simplejwt** - JWT authentication
+- **django-cors-headers** - CORS middleware
+- **python-dotenv** - Environment management
 
 ## 📝 Features
 
 ### For Students
-- ✍️ Submit attendance requests with:
-  - Event date
-  - Number of periods (1-8)
+- ✍️ **Submit Attendance Requests** with:
+  - Single day or multiple days
+  - Specific period selection (1-8)
+  - Period-specific faculty assignment
+  - Event coordinator details
+  - Event purpose/description (10-500 characters)
+- 📊 **View Request History** with status tracking
+- 🎨 **Color-coded Status Badges**:
+  - 🟡 Pending (Mentor)
+  - 🔵 Mentor Approved
+  - 🟢 Approved
+  - 🔴 Declined
+- 📱 **Real-time Updates** on request status
+
+### For Faculty (Mentor)
+- 👀 **Review Student Requests** in mentor queue
+- ✅ **Approve/Decline** with optional comments
+- 📊 **Dashboard Statistics**:
+  - Total requests
+  - Pending mentor approvals
+  - Approved count
+  - Declined count
+- 📝 **Complete Request History** with filters
+- 🔔 **Real-time Notification Counts**
+
+### For Faculty (HOD)
+- 🎯 **Final Approval Authority** for mentor-approved requests
+- 📧 **Automated Email Notifications**:
+  - Sent from HOD's email
+  - To all period faculty members
+  - Includes student details, periods, and event info
+- 📊 **Comprehensive Dashboard** with:
+  - Mentor approved queue
+  - Approved/declined statistics
+  - Historical data view
+- 🔍 **Advanced Filtering** and search
+
+### Email Notification System
+- 📬 **Automatic Email Dispatch** when HOD approves
+- 👤 **Personalized Emails** for each faculty
+- 📋 **Detailed Information**:
+  - Student name and email
+  - Event date and periods
+  - Event purpose
+  - Coordinator details
+- 🔐 **Secure SMTP** configuration
+- ✅ **Professional Email Templates**
+
+## 🗄️ Database Schema
+
+### Core Models
+- **User** - Base authentication (email-based)
+- **Student** - Student profile with mentor assignment
+- **Faculty** - Faculty profile with role (Mentor/HOD)
+- **AttendanceRequest** - Request details with:
+  - Date range support
+  - Period-faculty mapping (JSONB)
   - Event coordinator
-  - Faculty to send proof
-  - Purpose description
-- 📊 View request history
-- 🎨 Track request status with color-coded badges
+  - Multi-stage approval workflow
 
-### For Faculty
-- 👨‍🏫 Two-tier approval queues (Mentor/HOD)
-- ✅ Approve or decline requests
-- 📝 Add decline reasons
-- 📊 View complete request history
-- 🔢 Real-time pending request counts
+### Relationships
+```
+User (1) ←→ (1) Student/Faculty
+Student (N) → (1) Faculty (mentor)
+Student (1) → (N) AttendanceRequest
+Faculty (1) → (N) AttendanceRequest (event coordinator)
+```
 
-## 🗄️ Data Storage
+## 🔐 Authentication & Permissions
 
-**Current Implementation:**
-- Uses `sessionStorage` for temporary data caching
-- Data persists during the browser session only
-- Automatically cleared when browser is closed
-- No permanent storage (ready for backend integration)
+- **JWT-based Authentication**
+  - Access & Refresh tokens
+  - Secure token refresh mechanism
+  - Role-based permissions
 
-**Note:** This is a temporary solution. Once the Django backend is ready, all data will be persisted in PostgreSQL database.
+- **Role-Based Access Control**
+  - Student: Create and view own requests
+  - Faculty (Mentor): Approve mentor-stage requests
+  - Faculty (HOD): Final approval and email dispatch
 
-## 🔐 Authentication
+- **Custom Permissions**
+  - `IsStudent` - Student-only actions
+  - `IsFaculty` - Faculty-only actions
+  - `IsHOD` - HOD-only actions
+  - `IsStudentOwner` - Own request management
 
-**Current Implementation:**
-- Demo login system (for development)
-- Role-based access (Student/Faculty)
-- Session-based auth state
+## 📧 Email Configuration
 
-**Planned:**
-- JWT-based authentication with Django backend
-- Real user credentials
-- Role-based permissions
+### Development Mode (Console Backend)
+Emails print to terminal for testing:
+```env
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
 
-## 🎨 UI Components
+### Production Mode (SMTP)
+Configure Gmail App Password:
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=hod-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+```
 
-Custom reusable component library:
+See EMAIL_SETUP_GUIDE.md for detailed setup instructions.
+
+## 🎨 UI Components Library
+
+Custom reusable components built with React + TypeScript:
+
 - **Button** - 5 variants (primary, secondary, success, danger, ghost)
-- **Card** - Container with Header, Content, Footer
-- **Badge** - Status indicators
-- **Input** - Form inputs
-- **Select** - Dropdowns
-- **Modal** - Popup dialogs
-- **AttendanceTable** - Data table with actions
+- **Card** - Container with Header, Content, Footer sections
+- **Badge** - Status indicators with color variants
+- **Input** - Form inputs with validation states
+- **Select** - Dropdowns with search
+- **Modal** - Popup dialogs with animations
+- **AttendanceTable** - Data table with sorting and actions
+- **EmptyState** - Placeholder for no data scenarios
+
+All components support:
+- 🌙 Dark/Light theme
+- ♿ Accessibility (ARIA labels)
+- 📱 Responsive design
+- 🎯 TypeScript type safety
 
 ## 🌙 Theme Support
 
-- Light and dark mode
-- Automatic theme switching
-- Consistent styling across themes
+- **Automatic Theme Detection** based on system preferences
+- **Manual Toggle** between light and dark modes
+- **Persistent Theme** across sessions
+- **Consistent Styling** with Tailwind CSS
 
-## 📦 Project Status
+## 🔄 API Endpoints
 
-### ✅ Completed
-- Frontend UI/UX design
-- Component architecture
-- Session-based temporary storage
-- Role-based dashboards
-- Request submission workflow
-- Approval workflow
-- Empty state handling
+### Authentication
+- `POST /api/auth/login/` - User login
+- `POST /api/auth/refresh/` - Refresh access token
 
-### 🚧 In Development
-- Django REST API backend
-- PostgreSQL database integration
-- Real authentication system
-- API service layer
-- File upload for proofs
+### Attendance Requests
+- `GET /api/attendance/requests/` - List requests
+- `POST /api/attendance/requests/` - Create request
+- `GET /api/attendance/requests/{id}/` - Get request details
+- `PATCH /api/attendance/requests/{id}/status/` - Update status
 
-### 📋 Planned
-- Form validation (React Hook Form + Zod)
-- Toast notifications
-- Search and filtering
-- Pagination
-- Request editing
-- Email notifications
-- Analytics dashboard
-- Testing suite
+### Faculty
+- `GET /api/faculty/` - List faculty members
 
-## 🤝 Team
+### Statistics
+- `GET /api/attendance/statistics/` - Dashboard statistics
 
-- **Frontend Development** - Current developer
-- **Backend Development** - Django + PostgreSQL team member
+## 🤝 Team & Contributions
+
+### Team Members
+- **Earnest Kirubakaran Oswarld S** - Backend Development & Integration
+  - Django REST API architecture
+  - Database design & migrations
+  - Email notification system
+  - Backend-Frontend integration
+  - Deployment & DevOps
+
+- **Dickson E** - Frontend Development
+  - React component library
+  - UI/UX design implementation
+  - TypeScript type definitions
+  - State management
+
+- **Niranjan T** - Backend Development
+  - Database optimization
+  - Business logic implementation
+  - Testing & debugging
+  - Documentation
+
+- **Gokul P** - Frontend Development & Integration
+  - API service layer
+  - Authentication flow
+  - Frontend-Backend integration
+  - Responsive design
+
+- **Aries Nathya A** - Backend Development
+  - Django models & serializers
+  - Authentication system
+  - Permission framework
+  - API endpoints
+
+## 📄 License
+
+This project is developed for educational purposes as part of university dot dev club
+
+## 🐛 Bug Reports & Feature Requests
+
+Please report issues or request features through the project's issue tracker.
+
+---
