@@ -23,6 +23,20 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     email = models.EmailField(unique=True)
     
+    # Override groups and permissions to avoid creating extra tables
+    groups = models.ManyToManyField(
+        'auth.Group',
+        blank=True,
+        related_name='custom_user_set',
+        related_query_name='custom_user',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        blank=True,
+        related_name='custom_user_set',
+        related_query_name='custom_user',
+    )
+    
     # Override username to use email
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'role']

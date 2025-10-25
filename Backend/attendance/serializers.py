@@ -151,10 +151,19 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
         
         # Validate single day format
         if has_single:
-            required_fields = ['date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'eventCoordinatorFacultyId', 'proofFaculty', 'purpose']
+            required_fields = ['date', 'periods', 'eventCoordinator', 'proofFaculty', 'purpose']
             for field in required_fields:
                 if field not in data:
                     raise serializers.ValidationError(f"{field} is required for single day request")
+            
+            # eventCoordinatorFacultyId is optional but must be valid if provided
+            if 'eventCoordinatorFacultyId' in data and data['eventCoordinatorFacultyId'] and data['eventCoordinatorFacultyId'].strip():
+                # Validate it's a valid UUID format
+                import uuid
+                try:
+                    uuid.UUID(str(data['eventCoordinatorFacultyId']))
+                except ValueError:
+                    raise serializers.ValidationError("eventCoordinatorFacultyId must be a valid UUID")
             
             if len(data['purpose']) < 10:
                 raise serializers.ValidationError("Purpose must be at least 10 characters")
@@ -165,10 +174,18 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Requests array cannot be empty")
             
             for req in data['requests']:
-                required_fields = ['date', 'periods', 'eventCoordinator', 'eventCoordinatorFacultyId', 'proofFaculty', 'purpose']
+                required_fields = ['date', 'periods', 'eventCoordinator', 'proofFaculty', 'purpose']
                 for field in required_fields:
                     if field not in req:
                         raise serializers.ValidationError(f"{field} is required in each request")
+                
+                # eventCoordinatorFacultyId is optional but must be valid if provided
+                if 'eventCoordinatorFacultyId' in req and req['eventCoordinatorFacultyId'] and req['eventCoordinatorFacultyId'].strip():
+                    import uuid
+                    try:
+                        uuid.UUID(str(req['eventCoordinatorFacultyId']))
+                    except ValueError:
+                        raise serializers.ValidationError("eventCoordinatorFacultyId must be a valid UUID in each request")
                 
                 if len(req['purpose']) < 10:
                     raise serializers.ValidationError("Purpose must be at least 10 characters")

@@ -134,44 +134,43 @@ CREATE TRIGGER update_attendance_requests_updated_at BEFORE UPDATE ON attendance
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- Insert data from mockDatabase.ts
--- Note: Passwords are stored as plain text here matching mockDatabase.ts exactly.
+-- Insert data - Real Karunya University Users
+-- Note: Passwords are stored as plain text here.
 -- If using Django backend, run seed_data command instead for proper hashing.
 -- ============================================================================
 
--- Insert Students (Plain text passwords from mockDatabase.ts)
+-- Insert Students (Real Karunya University Students)
 INSERT INTO users (id, username, email, password, first_name, last_name, role, is_active, is_staff, is_superuser)
 VALUES
-    (gen_random_uuid(), 'dickson', 'dickson@university.edu', 'student123', 'Dickson', 'Student', 'Student', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'niranjan', 'niranjan@university.edu', 'student123', 'Niranjan', 'Kumar', 'Student', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'gokul', 'gokul@university.edu', 'student123', 'Gokul', 'Raj', 'Student', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'earnest', 'earnest@university.edu', 'student123', 'Earnest', 'Johnson', 'Student', TRUE, FALSE, FALSE);
+    (gen_random_uuid(), 'urk23ai1090', 'gokulp@karunya.edu.in', 'student123', 'Gokul', 'P', 'Student', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'urk23ai1103', 'niranjant@karunya.edu.in', 'student123', 'Niranjan', 'T', 'Student', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'urk23ai1072', 'dicksone@karunya.edu.in', 'student123', 'Dickson', 'E', 'Student', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'urk23ai1046', 'earnestkirubakaran@karunya.edu.in', 'student123', 'Earnest', 'Kirubakaran', 'Student', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'urk23ai1082', 'ariesnathya@karunya.edu.in', 'student123', 'Aries', 'Nathya', 'Student', TRUE, FALSE, FALSE);
 
--- Insert Faculty Users (Plain text passwords from mockDatabase.ts)
+-- Insert Faculty Users (Real Karunya University Faculty)
 INSERT INTO users (id, username, email, password, first_name, last_name, role, is_active, is_staff, is_superuser)
 VALUES
-    (gen_random_uuid(), 'evelyn.reed', 'evelyn.reed@university.edu', 'faculty123', 'Evelyn', 'Reed', 'Faculty', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'samuel.grant', 'samuel.grant@university.edu', 'faculty123', 'Samuel', 'Grant', 'Faculty', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'maria.chen', 'maria.chen@university.edu', 'faculty123', 'Maria', 'Chen', 'Faculty', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'ben.carter', 'ben.carter@university.edu', 'faculty123', 'Ben', 'Carter', 'Faculty', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'sarah.williams', 'sarah.williams@university.edu', 'faculty123', 'Sarah', 'Williams', 'Faculty', TRUE, FALSE, FALSE),
-    (gen_random_uuid(), 'james.anderson', 'james.anderson@university.edu', 'faculty123', 'James', 'Anderson', 'Faculty', TRUE, FALSE, FALSE);
+    (gen_random_uuid(), 'grace.mary', 'dotdev.test@gmail.com', 'faculty123', 'Grace Mary', 'Kanaga', 'Faculty', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'antony.taurshia', 'dicksone2006@gmail.com', 'faculty123', 'Antony', 'Taurshia', 'Faculty', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'nirmal', 'niranjan2005official@gmail.com', 'faculty123', 'Nirmal', '', 'Faculty', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'ebenezer', 'earni8105@gmail.com', 'faculty123', 'Ebenezer', '', 'Faculty', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'jenefa', 'ariesnathya@gmail.com', 'faculty123', 'Jenefa', '', 'Faculty', TRUE, FALSE, FALSE),
+    (gen_random_uuid(), 'sirija', 'gokulp1806official@gmail.com', 'faculty123', 'Sirija', '', 'Faculty', TRUE, FALSE, FALSE);
 
 -- Create Student Profiles
 INSERT INTO students (user_id, student_id, department, year, section)
 SELECT 
     u.id,
-    'STD' || LPAD((ROW_NUMBER() OVER ())::TEXT, 3, '0'),
     CASE 
-        WHEN u.email = 'dickson@university.edu' THEN 'Computer Science'
-        WHEN u.email = 'niranjan@university.edu' THEN 'Computer Science'
-        WHEN u.email = 'gokul@university.edu' THEN 'Computer Science'
-        WHEN u.email = 'earnest@university.edu' THEN 'Computer Science'
+        WHEN u.email = 'gokulp@karunya.edu.in' THEN 'urk23ai1090'
+        WHEN u.email = 'niranjant@karunya.edu.in' THEN 'urk23ai1103'
+        WHEN u.email = 'dicksone@karunya.edu.in' THEN 'urk23ai1072'
+        WHEN u.email = 'earnestkirubakaran@karunya.edu.in' THEN 'urk23ai1046'
+        WHEN u.email = 'ariesnathya@karunya.edu.in' THEN 'urk23ai1082'
     END,
-    CASE 
-        WHEN u.email IN ('dickson@university.edu', 'niranjan@university.edu', 'earnest@university.edu') THEN 3
-        WHEN u.email = 'gokul@university.edu' THEN 2
-    END,
+    'Computer Science',
+    3,  -- Year 3 for all students
     'A'
 FROM users u
 WHERE u.role = 'Student';
@@ -181,23 +180,16 @@ INSERT INTO faculty (user_id, title, department, is_hod)
 SELECT 
     u.id,
     CASE 
-        WHEN u.email = 'evelyn.reed@university.edu' THEN 'Professor, Computer Science'
-        WHEN u.email = 'samuel.grant@university.edu' THEN 'Associate Professor, Electronics and Communication'
-        WHEN u.email = 'maria.chen@university.edu' THEN 'Professor, Computer Science (HOD)'
-        WHEN u.email = 'ben.carter@university.edu' THEN 'Assistant Professor, Electrical Engineering'
-        WHEN u.email = 'sarah.williams@university.edu' THEN 'Associate Professor, Computer Science'
-        WHEN u.email = 'james.anderson@university.edu' THEN 'Professor, Information Technology (HOD)'
+        WHEN u.email = 'dotdev.test@gmail.com' THEN 'Professor, Computer Science (HOD)'
+        WHEN u.email = 'dicksone2006@gmail.com' THEN 'Assistant Professor, Computer Science'
+        WHEN u.email = 'niranjan2005official@gmail.com' THEN 'Assistant Professor, Computer Science'
+        WHEN u.email = 'earni8105@gmail.com' THEN 'Assistant Professor, Computer Science'
+        WHEN u.email = 'ariesnathya@gmail.com' THEN 'Assistant Professor, Computer Science'
+        WHEN u.email = 'gokulp1806official@gmail.com' THEN 'Assistant Professor, Computer Science'
     END,
+    'Computer Science',
     CASE 
-        WHEN u.email = 'evelyn.reed@university.edu' THEN 'Computer Science'
-        WHEN u.email = 'samuel.grant@university.edu' THEN 'Electronics and Communication'
-        WHEN u.email = 'maria.chen@university.edu' THEN 'Computer Science'
-        WHEN u.email = 'ben.carter@university.edu' THEN 'Electrical Engineering'
-        WHEN u.email = 'sarah.williams@university.edu' THEN 'Computer Science'
-        WHEN u.email = 'james.anderson@university.edu' THEN 'Information Technology'
-    END,
-    CASE 
-        WHEN u.email IN ('maria.chen@university.edu', 'james.anderson@university.edu') THEN TRUE
+        WHEN u.email = 'dotdev.test@gmail.com' THEN TRUE  -- Grace Mary Kanaga is HOD
         ELSE FALSE
     END
 FROM users u
@@ -206,42 +198,42 @@ WHERE u.role = 'Faculty';
 -- Insert Sample Attendance Requests
 INSERT INTO attendance_requests (student_id, date, periods, event_coordinator, proof_faculty, purpose, status, reason)
 SELECT 
-    (SELECT id FROM users WHERE email = 'dickson@university.edu'),
+    (SELECT id FROM users WHERE email = 'dicksone@karunya.edu.in'),
     CURRENT_DATE - INTERVAL '5 days',
     '[1, 2, 3]'::JSONB,
-    'Dr. Smith',
-    'Dr. Johnson',
+    'Grace Mary Kanaga',
+    'Antony Taurshia',
     'Attending workshop on Artificial Intelligence and Machine Learning technologies',
     'PENDING_MENTOR',
     NULL
 UNION ALL
 SELECT 
-    (SELECT id FROM users WHERE email = 'niranjan@university.edu'),
+    (SELECT id FROM users WHERE email = 'niranjant@karunya.edu.in'),
     CURRENT_DATE - INTERVAL '3 days',
     '[4, 5, 6, 7]'::JSONB,
-    'Dr. Reed',
-    'Dr. Chen',
+    'Nirmal',
+    'Ebenezer',
     'Participating in National Level Hackathon organized by Tech University',
     'PENDING_HOD',
     NULL
 UNION ALL
 SELECT 
-    (SELECT id FROM users WHERE email = 'dickson@university.edu'),
+    (SELECT id FROM users WHERE email = 'gokulp@karunya.edu.in'),
     CURRENT_DATE - INTERVAL '10 days',
     '[1, 2, 3, 4, 5]'::JSONB,
-    'Dr. Anderson',
-    'Dr. Maria Chen',
+    'Grace Mary Kanaga',
+    'Jenefa',
     'Attending conference on Cloud Computing and DevOps practices',
     'APPROVED',
     NULL
 UNION ALL
 SELECT 
-    (SELECT id FROM users WHERE email = 'gokul@university.edu'),
+    (SELECT id FROM users WHERE email = 'earnestkirubakaran@karunya.edu.in'),
     CURRENT_DATE - INTERVAL '7 days',
     '[6, 7, 8]'::JSONB,
-    'Dr. Williams',
-    'Dr. Brown',
-    'Personal medical appointment',
+    'Sirija',
+    'Antony Taurshia',
+    'Personal medical appointment scheduled with doctor',
     'DECLINED',
     'Medical appointments do not qualify for event-based attendance exemption';
 
@@ -280,3 +272,37 @@ SELECT
 FROM users u
 LEFT JOIN faculty f ON f.user_id = u.id
 ORDER BY u.role, u.email;
+
+SELECT 
+    id,
+    date,
+    periods,
+    purpose,
+    event_coordinator,
+    proof_faculty,
+    status,
+    created_at,
+    updated_at
+FROM attendance_requests
+ORDER BY created_at DESC;
+
+SELECT 
+    ar.id,
+    u.first_name || ' ' || u.last_name AS student_name,
+    u.email AS student_email,
+    ar.date,
+    ar.periods,
+    ar.purpose,
+    ar.event_coordinator,
+    ar.status,
+    ar.created_at
+FROM attendance_requests ar
+JOIN users u ON ar.student_id = u.id
+ORDER BY ar.created_at DESC;
+
+SELECT 
+    status,
+    COUNT(*) as total
+FROM attendance_requests
+GROUP BY status
+ORDER BY total DESC;
