@@ -62,7 +62,7 @@ class LoginSerializer(serializers.Serializer):
 class FacultySerializer(serializers.ModelSerializer):
     """Serializer for Faculty with user information."""
     
-    id = serializers.UUIDField(read_only=True)
+    id = serializers.UUIDField(source='user.id', read_only=True)
     name = serializers.CharField(source='user.get_full_name', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     isHOD = serializers.BooleanField(source='is_hod', read_only=True)
@@ -157,11 +157,14 @@ class AttendanceRequestCreateSerializer(serializers.Serializer):
                     raise serializers.ValidationError(f"{field} is required for single day request")
             
             # eventCoordinatorFacultyId is optional but must be valid if provided
-            if 'eventCoordinatorFacultyId' in data and data['eventCoordinatorFacultyId'] and data['eventCoordinatorFacultyId'].strip():
+            if 'eventCoordinatorFacultyId' in data and data['eventCoordinatorFacultyId']:
                 # Validate it's a valid UUID format
                 import uuid
                 try:
-                    uuid.UUID(str(data['eventCoordinatorFacultyId']))
+                    # Convert to string first in case it's already a UUID object
+                    faculty_id_str = str(data['eventCoordinatorFacultyId']).strip() if isinstance(data['eventCoordinatorFacultyId'], str) else str(data['eventCoordinatorFacultyId'])
+                    if faculty_id_str:  # Only validate if not empty after stripping
+                        uuid.UUID(faculty_id_str)
                 except ValueError:
                     raise serializers.ValidationError("eventCoordinatorFacultyId must be a valid UUID")
             

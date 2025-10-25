@@ -223,6 +223,12 @@ const NewRequestForm: React.FC<NewRequestFormProps> = ({ onClose }) => {
                     }
                 }
 
+                console.log('DEBUG: Submitting request with:', {
+                    eventCoordinator: eventIncharge,
+                    eventCoordinatorFacultyId: eventInchargeFacultyId,
+                    eventInchargeFacultyIdType: typeof eventInchargeFacultyId
+                });
+
                 await addRequest({
                     studentId: user.id,
                     studentName: user.name,

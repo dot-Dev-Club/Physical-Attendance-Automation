@@ -229,18 +229,25 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
             event_coordinator_faculty = None
             
             # Only try to get faculty if ID is provided and not empty
-            if event_coordinator_faculty_id and event_coordinator_faculty_id.strip():
-                try:
-                    from .models import User
-                    event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
-                except (User.DoesNotExist, ValueError):
-                    return Response({
-                        'error': {
-                            'message': 'Invalid event coordinator faculty ID',
-                            'code': 'INVALID_FACULTY',
-                            'statusCode': 400
-                        }
-                    }, status=status.HTTP_400_BAD_REQUEST)
+            if event_coordinator_faculty_id:
+                # Convert to string if it's a UUID object, handle both string and UUID types
+                if isinstance(event_coordinator_faculty_id, str):
+                    event_coordinator_faculty_id = event_coordinator_faculty_id.strip()
+                else:
+                    event_coordinator_faculty_id = str(event_coordinator_faculty_id)
+                
+                if event_coordinator_faculty_id:  # Check if not empty after conversion
+                    try:
+                        from .models import User
+                        event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
+                    except (User.DoesNotExist, ValueError):
+                        return Response({
+                            'error': {
+                                'message': 'Invalid event coordinator faculty ID',
+                                'code': 'INVALID_FACULTY',
+                                'statusCode': 400
+                            }
+                        }, status=status.HTTP_400_BAD_REQUEST)
             
             attendance_request = AttendanceRequest.objects.create(
                 student=request.user,
@@ -263,18 +270,25 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                 event_coordinator_faculty = None
                 
                 # Only try to get faculty if ID is provided and not empty
-                if event_coordinator_faculty_id and event_coordinator_faculty_id.strip():
-                    try:
-                        from .models import User
-                        event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
-                    except (User.DoesNotExist, ValueError):
-                        return Response({
-                            'error': {
-                                'message': f'Invalid event coordinator faculty ID: {event_coordinator_faculty_id}',
-                                'code': 'INVALID_FACULTY',
-                                'statusCode': 400
-                            }
-                        }, status=status.HTTP_400_BAD_REQUEST)
+                if event_coordinator_faculty_id:
+                    # Convert to string if it's a UUID object, handle both string and UUID types
+                    if isinstance(event_coordinator_faculty_id, str):
+                        event_coordinator_faculty_id = event_coordinator_faculty_id.strip()
+                    else:
+                        event_coordinator_faculty_id = str(event_coordinator_faculty_id)
+                    
+                    if event_coordinator_faculty_id:  # Check if not empty after conversion
+                        try:
+                            from .models import User
+                            event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
+                        except (User.DoesNotExist, ValueError):
+                            return Response({
+                                'error': {
+                                    'message': f'Invalid event coordinator faculty ID: {event_coordinator_faculty_id}',
+                                    'code': 'INVALID_FACULTY',
+                                    'statusCode': 400
+                                }
+                            }, status=status.HTTP_400_BAD_REQUEST)
                 
                 attendance_request = AttendanceRequest.objects.create(
                     student=request.user,
