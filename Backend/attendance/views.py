@@ -227,11 +227,13 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
             # Get event coordinator faculty by ID
             event_coordinator_faculty_id = validated_data.get('eventCoordinatorFacultyId', validated_data.get('event_coordinator_faculty_id'))
             event_coordinator_faculty = None
-            if event_coordinator_faculty_id:
+            
+            # Only try to get faculty if ID is provided and not empty
+            if event_coordinator_faculty_id and event_coordinator_faculty_id.strip():
                 try:
                     from .models import User
                     event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
-                except User.DoesNotExist:
+                except (User.DoesNotExist, ValueError):
                     return Response({
                         'error': {
                             'message': 'Invalid event coordinator faculty ID',
@@ -259,11 +261,13 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                 # Get event coordinator faculty by ID
                 event_coordinator_faculty_id = req_data.get('eventCoordinatorFacultyId', req_data.get('event_coordinator_faculty_id'))
                 event_coordinator_faculty = None
-                if event_coordinator_faculty_id:
+                
+                # Only try to get faculty if ID is provided and not empty
+                if event_coordinator_faculty_id and event_coordinator_faculty_id.strip():
                     try:
                         from .models import User
                         event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
-                    except User.DoesNotExist:
+                    except (User.DoesNotExist, ValueError):
                         return Response({
                             'error': {
                                 'message': f'Invalid event coordinator faculty ID: {event_coordinator_faculty_id}',

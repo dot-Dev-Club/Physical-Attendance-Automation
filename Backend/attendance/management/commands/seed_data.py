@@ -17,18 +17,21 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write('Seeding database with test data...\n')
         
-        # Clear existing data (optional - comment out if you want to keep existing data)
-        # AttendanceRequest.objects.all().delete()
-        # Student.objects.all().delete()
-        # Faculty.objects.all().delete()
-        # User.objects.filter(is_superuser=False).delete()
+        # Clear existing data
+        self.stdout.write('Clearing existing data...')
+        AttendanceRequest.objects.all().delete()
+        Student.objects.all().delete()
+        Faculty.objects.all().delete()
+        User.objects.filter(is_superuser=False).delete()
+        self.stdout.write(self.style.SUCCESS('✓ Cleared\n'))
         
         # Create Students
         students_data = [
-            {'username': 'dickson', 'email': 'dickson@university.edu', 'first_name': 'Dickson', 'last_name': 'Student'},
-            {'username': 'niranjan', 'email': 'niranjan@university.edu', 'first_name': 'Niranjan', 'last_name': 'Kumar'},
-            {'username': 'gokul', 'email': 'gokul@university.edu', 'first_name': 'Gokul', 'last_name': 'Raj'},
-            {'username': 'earnest', 'email': 'earnest@university.edu', 'first_name': 'Earnest', 'last_name': 'Johnson'},
+            {'username': 'urk23ai1090', 'email': 'gokulp@karunya.edu.in', 'first_name': 'Gokul', 'last_name': 'P'},
+            {'username': 'urk23ai1103', 'email': 'niranjant@karunya.edu.in', 'first_name': 'Niranjan', 'last_name': 'T'},
+            {'username': 'urk23ai1072', 'email': 'dicksone@karunya.edu.in', 'first_name': 'Dickson', 'last_name': 'E'},
+            {'username': 'urk23ai1046', 'email': 'earnestkirubakaran@karunya.edu.in', 'first_name': 'Earnest', 'last_name': 'Kirubakaran'},
+            {'username': 'urk23ai1082', 'email': 'ariesnathya@karunya.edu.in', 'first_name': 'Aries', 'last_name': 'Nathya'},
         ]
         
         students = []
@@ -51,21 +54,48 @@ class Command(BaseCommand):
         # Create Faculty (Regular Mentors)
         faculty_data = [
             {
-                'username': 'evelyn.reed',
-                'email': 'evelyn.reed@university.edu',
-                'first_name': 'Evelyn',
-                'last_name': 'Reed',
-                'title': 'Professor, Computer Science',
+                'username': 'antony.taurshia',
+                'email': 'dicksone2006@gmail.com',
+                'first_name': 'Antony',
+                'last_name': 'Taurshia',
+                'title': 'Assistant Professor, Computer Science',
                 'department': 'Computer Science',
                 'is_hod': False
             },
             {
-                'username': 'robert.chen',
-                'email': 'robert.chen@university.edu',
-                'first_name': 'Robert',
-                'last_name': 'Chen',
-                'title': 'Associate Professor, Mathematics',
-                'department': 'Mathematics',
+                'username': 'nirmal',
+                'email': 'niranjan2005official@gmail.com',
+                'first_name': 'Nirmal',
+                'last_name': '',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'ebenezer',
+                'email': 'earni8105@gmail.com',
+                'first_name': 'Ebenezer',
+                'last_name': '',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'jenefa',
+                'email': 'ariesnathya@gmail.com',
+                'first_name': 'Jenefa',
+                'last_name': '',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'sirija',
+                'email': 'gokulp1806official@gmail.com',
+                'first_name': 'Sirija',
+                'last_name': '',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
                 'is_hod': False
             },
         ]
@@ -98,21 +128,12 @@ class Command(BaseCommand):
         # Create HODs
         hod_data = [
             {
-                'username': 'maria.chen',
-                'email': 'maria.chen@university.edu',
-                'first_name': 'Maria',
-                'last_name': 'Chen',
+                'username': 'grace.mary',
+                'email': 'dotdev.test@gmail.com',
+                'first_name': 'Grace Mary',
+                'last_name': 'Kanaga',
                 'title': 'Professor, Computer Science (HOD)',
                 'department': 'Computer Science',
-                'is_hod': True
-            },
-            {
-                'username': 'james.anderson',
-                'email': 'james.anderson@university.edu',
-                'first_name': 'James',
-                'last_name': 'Anderson',
-                'title': 'Professor, Information Technology (HOD)',
-                'department': 'Information Technology',
                 'is_hod': True
             },
         ]
@@ -152,8 +173,8 @@ class Command(BaseCommand):
                     'student': students[0],
                     'date': today - timedelta(days=5),
                     'periods': [1, 2, 3],
-                    'event_coordinator': 'Dr. Smith',
-                    'proof_faculty': 'Dr. Johnson',
+                    'event_coordinator': 'Grace Mary Kanaga',
+                    'proof_faculty': 'Antony Taurshia',
                     'purpose': 'Attending workshop on Artificial Intelligence and Machine Learning',
                     'status': 'PENDING_MENTOR'
                 },
@@ -161,8 +182,8 @@ class Command(BaseCommand):
                     'student': students[1],
                     'date': today - timedelta(days=3),
                     'periods': [4, 5, 6, 7],
-                    'event_coordinator': 'Dr. Reed',
-                    'proof_faculty': 'Dr. Chen',
+                    'event_coordinator': 'Nirmal',
+                    'proof_faculty': 'Ebenezer',
                     'purpose': 'Participating in National Level Hackathon organized by Tech University',
                     'status': 'PENDING_HOD'
                 },
@@ -170,8 +191,8 @@ class Command(BaseCommand):
                     'student': students[0],
                     'date': today - timedelta(days=10),
                     'periods': [1, 2, 3, 4, 5],
-                    'event_coordinator': 'Dr. Anderson',
-                    'proof_faculty': 'Dr. Maria Chen',
+                    'event_coordinator': 'Grace Mary Kanaga',
+                    'proof_faculty': 'Jenefa',
                     'purpose': 'Attending conference on Cloud Computing and DevOps practices',
                     'status': 'APPROVED'
                 },
@@ -179,8 +200,8 @@ class Command(BaseCommand):
                     'student': students[2],
                     'date': today - timedelta(days=7),
                     'periods': [6, 7, 8],
-                    'event_coordinator': 'Dr. Williams',
-                    'proof_faculty': 'Dr. Brown',
+                    'event_coordinator': 'Sirija',
+                    'proof_faculty': 'Antony Taurshia',
                     'purpose': 'Personal medical appointment',
                     'status': 'DECLINED',
                     'reason': 'Medical appointments do not qualify for event-based attendance exemption'
@@ -208,15 +229,18 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('\n✅ Database seeded successfully!'))
         self.stdout.write('\nTest Credentials:')
         self.stdout.write('─' * 50)
-        self.stdout.write('Students:')
-        self.stdout.write('  Email: dickson@university.edu | Password: student123')
-        self.stdout.write('  Email: niranjan@university.edu | Password: student123')
-        self.stdout.write('  Email: gokul@university.edu | Password: student123')
-        self.stdout.write('  Email: earnest@university.edu | Password: student123')
-        self.stdout.write('\nFaculty (Mentors):')
-        self.stdout.write('  Email: evelyn.reed@university.edu | Password: faculty123')
-        self.stdout.write('  Email: robert.chen@university.edu | Password: faculty123')
-        self.stdout.write('\nFaculty (HODs):')
-        self.stdout.write('  Email: maria.chen@university.edu | Password: faculty123')
-        self.stdout.write('  Email: james.anderson@university.edu | Password: faculty123')
+        self.stdout.write('Students (Password: student123):')
+        self.stdout.write('  Email: gokulp@karunya.edu.in')
+        self.stdout.write('  Email: niranjant@karunya.edu.in')
+        self.stdout.write('  Email: dicksone@karunya.edu.in')
+        self.stdout.write('  Email: earnestkirubakaran@karunya.edu.in')
+        self.stdout.write('  Email: ariesnathya@karunya.edu.in')
+        self.stdout.write('\nFaculty - Regular (Password: faculty123):')
+        self.stdout.write('  Email: dicksone2006@gmail.com (Antony Taurshia)')
+        self.stdout.write('  Email: niranjan2005official@gmail.com (Nirmal)')
+        self.stdout.write('  Email: earni8105@gmail.com (Ebenezer)')
+        self.stdout.write('  Email: ariesnathya@gmail.com (Jenefa)')
+        self.stdout.write('  Email: gokulp1806official@gmail.com (Sirija)')
+        self.stdout.write('\nFaculty - HOD (Password: faculty123):')
+        self.stdout.write('  Email: dotdev.test@gmail.com (Grace Mary Kanaga) [HOD]')
         self.stdout.write('─' * 50)
