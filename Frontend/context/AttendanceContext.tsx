@@ -70,6 +70,7 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
                 periods: request.periods,
                 periodFacultyMapping: request.periodFacultyMapping,
                 eventCoordinator: request.eventCoordinator,
+                eventCoordinatorFacultyId: request.eventCoordinatorFacultyId,
                 proofFaculty: request.proofFaculty,
                 purpose: request.purpose,
             });

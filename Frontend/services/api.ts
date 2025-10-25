@@ -181,6 +181,7 @@ export const attendanceAPI = {
             periods?: number[];
             periodFacultyMapping?: Record<string, string>;
             eventCoordinator?: string;
+            eventCoordinatorFacultyId?: string;
             proofFaculty?: string;
             purpose?: string;
             requests?: Array<{
@@ -188,6 +189,7 @@ export const attendanceAPI = {
                 periods: number[];
                 periodFacultyMapping?: Record<string, string>;
                 eventCoordinator: string;
+                eventCoordinatorFacultyId?: string;
                 proofFaculty: string;
                 purpose: string;
             }>;
