@@ -75,9 +75,13 @@ class FacultySerializer(serializers.ModelSerializer):
 class AttendanceRequestSerializer(serializers.ModelSerializer):
     """Serializer for AttendanceRequest."""
     
-    studentId = serializers.UUIDField(source='student.id', read_only=True)
-    studentName = serializers.CharField(source='student.name', read_only=True)
-    studentEmail = serializers.EmailField(source='student.email', read_only=True)
+    studentId = serializers.UUIDField(source='student.id', read_only=True, allow_null=True)
+    studentName = serializers.CharField(source='student.name', read_only=True, allow_null=True)
+    studentEmail = serializers.EmailField(source='student.email', read_only=True, allow_null=True)
+    isBulkRequest = serializers.BooleanField(source='is_bulk_request', read_only=True)
+    bulkStudents = serializers.JSONField(source='bulk_students', read_only=True)
+    createdBy = serializers.UUIDField(source='created_by.id', read_only=True, allow_null=True)
+    createdByName = serializers.CharField(source='created_by.name', read_only=True, allow_null=True)
     eventCoordinator = serializers.CharField(source='event_coordinator')
     eventCoordinatorFacultyId = serializers.UUIDField(source='event_coordinator_faculty.id', read_only=True, allow_null=True)
     eventCoordinatorFacultyName = serializers.CharField(source='event_coordinator_faculty.name', read_only=True, allow_null=True)
@@ -91,11 +95,12 @@ class AttendanceRequestSerializer(serializers.ModelSerializer):
         model = AttendanceRequest
         fields = [
             'id', 'studentId', 'studentName', 'studentEmail',
+            'isBulkRequest', 'bulkStudents', 'createdBy', 'createdByName',
             'date', 'periods', 'periodFacultyMapping', 'eventCoordinator', 'eventCoordinatorFacultyId', 'eventCoordinatorFacultyName', 'proofFaculty',
             'purpose', 'status', 'reason', 'proofUrl',
             'createdAt', 'updatedAt'
         ]
-        read_only_fields = ['id', 'status', 'studentId', 'studentName', 'studentEmail', 'createdAt', 'updatedAt']
+        read_only_fields = ['id', 'status', 'studentId', 'studentName', 'studentEmail', 'isBulkRequest', 'bulkStudents', 'createdBy', 'createdByName', 'createdAt', 'updatedAt']
     
     def validate_periods(self, value):
         """Validate periods are integers 1-8."""
@@ -118,80 +123,52 @@ class AttendanceRequestSerializer(serializers.ModelSerializer):
 
 
 class AttendanceRequestCreateSerializer(serializers.Serializer):
-    """Serializer for creating attendance requests (single or multiple days)."""
+    """Serializer for creating attendance requests (single student or bulk)."""
     
-    # Single day request fields
-    date = serializers.DateField(required=False)
+    # Common fields
+    date = serializers.DateField(required=True)
     periods = serializers.ListField(
         child=serializers.IntegerField(min_value=1, max_value=8),
-        required=False
+        required=True
     )
     periodFacultyMapping = serializers.JSONField(required=False)
-    eventCoordinator = serializers.CharField(max_length=255, required=False)
+    eventCoordinator = serializers.CharField(max_length=255, required=True)
     eventCoordinatorFacultyId = serializers.UUIDField(required=False, allow_null=True)
-    proofFaculty = serializers.CharField(max_length=255, required=False)
-    purpose = serializers.CharField(required=False)
+    proofFaculty = serializers.CharField(max_length=255, required=True)
+    purpose = serializers.CharField(required=True)
     
-    # Multiple days request field
-    requests = serializers.ListField(
+    # Bulk request field
+    bulkStudents = serializers.ListField(
         child=serializers.DictField(),
-        required=False
+        required=False,
+        allow_empty=False,
+        help_text="Array of {registerNumber, name} for bulk requests"
     )
     
     def validate(self, data):
-        """Validate either single day or multiple days format."""
-        has_single = 'date' in data
-        has_multiple = 'requests' in data
+        """Validate request data."""
         
-        if has_single and has_multiple:
-            raise serializers.ValidationError("Cannot provide both single day and multiple days format")
+        # Validate purpose length
+        if len(data['purpose']) < 10:
+            raise serializers.ValidationError("Purpose must be at least 10 characters")
         
-        if not has_single and not has_multiple:
-            raise serializers.ValidationError("Must provide either single day or multiple days format")
+        # Validate eventCoordinatorFacultyId if provided
+        if 'eventCoordinatorFacultyId' in data and data['eventCoordinatorFacultyId']:
+            import uuid
+            try:
+                faculty_id_str = str(data['eventCoordinatorFacultyId']).strip() if isinstance(data['eventCoordinatorFacultyId'], str) else str(data['eventCoordinatorFacultyId'])
+                if faculty_id_str:
+                    uuid.UUID(faculty_id_str)
+            except ValueError:
+                raise serializers.ValidationError("eventCoordinatorFacultyId must be a valid UUID")
         
-        # Validate single day format
-        if has_single:
-            required_fields = ['date', 'periods', 'eventCoordinator', 'proofFaculty', 'purpose']
-            for field in required_fields:
-                if field not in data:
-                    raise serializers.ValidationError(f"{field} is required for single day request")
-            
-            # eventCoordinatorFacultyId is optional but must be valid if provided
-            if 'eventCoordinatorFacultyId' in data and data['eventCoordinatorFacultyId']:
-                # Validate it's a valid UUID format
-                import uuid
-                try:
-                    # Convert to string first in case it's already a UUID object
-                    faculty_id_str = str(data['eventCoordinatorFacultyId']).strip() if isinstance(data['eventCoordinatorFacultyId'], str) else str(data['eventCoordinatorFacultyId'])
-                    if faculty_id_str:  # Only validate if not empty after stripping
-                        uuid.UUID(faculty_id_str)
-                except ValueError:
-                    raise serializers.ValidationError("eventCoordinatorFacultyId must be a valid UUID")
-            
-            if len(data['purpose']) < 10:
-                raise serializers.ValidationError("Purpose must be at least 10 characters")
-        
-        # Validate multiple days format
-        if has_multiple:
-            if not data['requests']:
-                raise serializers.ValidationError("Requests array cannot be empty")
-            
-            for req in data['requests']:
-                required_fields = ['date', 'periods', 'eventCoordinator', 'proofFaculty', 'purpose']
-                for field in required_fields:
-                    if field not in req:
-                        raise serializers.ValidationError(f"{field} is required in each request")
-                
-                # eventCoordinatorFacultyId is optional but must be valid if provided
-                if 'eventCoordinatorFacultyId' in req and req['eventCoordinatorFacultyId'] and req['eventCoordinatorFacultyId'].strip():
-                    import uuid
-                    try:
-                        uuid.UUID(str(req['eventCoordinatorFacultyId']))
-                    except ValueError:
-                        raise serializers.ValidationError("eventCoordinatorFacultyId must be a valid UUID in each request")
-                
-                if len(req['purpose']) < 10:
-                    raise serializers.ValidationError("Purpose must be at least 10 characters")
+        # Validate bulkStudents structure if provided
+        if 'bulkStudents' in data and data['bulkStudents']:
+            for student in data['bulkStudents']:
+                if 'registerNumber' not in student or 'name' not in student:
+                    raise serializers.ValidationError("Each bulk student must have registerNumber and name")
+                if not student['registerNumber'] or not student['name']:
+                    raise serializers.ValidationError("Register number and name cannot be empty")
         
         return data
 

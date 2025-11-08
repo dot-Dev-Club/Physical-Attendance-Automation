@@ -133,10 +133,14 @@ class AttendanceRequest(models.Model):
     Attendance Request model for two-tier approval workflow.
     
     Workflow:
-    1. Student creates request -> PENDING_MENTOR
+    1. Student/Bulk creates request -> PENDING_MENTOR
     2. Mentor approves -> PENDING_HOD
     3. HOD approves -> APPROVED
     OR decline at any stage -> DECLINED (with reason)
+    
+    Supports:
+    - Single student requests (student field populated)
+    - Bulk requests (bulk_students field populated with register numbers and names)
     """
     STATUS_CHOICES = [
         ('PENDING_MENTOR', 'Pending (Mentor)'),
@@ -146,12 +150,37 @@ class AttendanceRequest(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Single student request field
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='attendance_requests',
-        limit_choices_to={'role': 'Student'}
+        limit_choices_to={'role': 'Student'},
+        null=True,
+        blank=True,
+        help_text="For single student requests only"
     )
+    
+    # Bulk request fields
+    is_bulk_request = models.BooleanField(
+        default=False,
+        help_text="True if this is a bulk request for multiple students"
+    )
+    bulk_students = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Array of student objects with registerNumber and name for bulk requests"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_bulk_requests',
+        help_text="Faculty who created the bulk request"
+    )
+    
     date = models.DateField(help_text="Date of attendance request")
     periods = models.JSONField(
         default=list,
@@ -219,6 +248,24 @@ class AttendanceRequest(models.Model):
     def clean(self):
         """Validate model data."""
         from django.core.exceptions import ValidationError
+        
+        # Validate either student or bulk_students is provided
+        if not self.student and not self.bulk_students:
+            raise ValidationError("Either student or bulk_students must be provided")
+        
+        if self.student and self.bulk_students:
+            raise ValidationError("Cannot have both student and bulk_students")
+        
+        # Validate bulk_students structure
+        if self.is_bulk_request and self.bulk_students:
+            if not isinstance(self.bulk_students, list) or len(self.bulk_students) == 0:
+                raise ValidationError("bulk_students must be a non-empty list")
+            
+            for student_data in self.bulk_students:
+                if not isinstance(student_data, dict):
+                    raise ValidationError("Each bulk student must be an object")
+                if 'registerNumber' not in student_data or 'name' not in student_data:
+                    raise ValidationError("Each bulk student must have registerNumber and name")
         
         # Validate periods are integers 1-8
         if not isinstance(self.periods, list):
