@@ -55,7 +55,7 @@ class Command(BaseCommand):
         faculty_data = [
             {
                 'username': 'antony.taurshia',
-                'email': 'dicksone2006@gmail.com',
+                'email': 'aparna6024@gmail.com',
                 'first_name': 'Antony',
                 'last_name': 'Taurshia',
                 'title': 'Assistant Professor, Computer Science',
@@ -64,7 +64,7 @@ class Command(BaseCommand):
             },
             {
                 'username': 'nirmal',
-                'email': 'niranjan2005official@gmail.com',
+                'email': 'aparnaj@karunya.edu.in',
                 'first_name': 'Nirmal',
                 'last_name': '',
                 'title': 'Assistant Professor, Computer Science',
@@ -73,7 +73,7 @@ class Command(BaseCommand):
             },
             {
                 'username': 'ebenezer',
-                'email': 'earni8105@gmail.com',
+                'email': 'premadevasri639@gmail.com',
                 'first_name': 'Ebenezer',
                 'last_name': '',
                 'title': 'Assistant Professor, Computer Science',
@@ -82,7 +82,7 @@ class Command(BaseCommand):
             },
             {
                 'username': 'jenefa',
-                'email': 'ariesnathya@gmail.com',
+                'email': 'dharshankumarj.dev@gmail.com',
                 'first_name': 'Jenefa',
                 'last_name': '',
                 'title': 'Assistant Professor, Computer Science',
@@ -91,9 +91,45 @@ class Command(BaseCommand):
             },
             {
                 'username': 'sirija',
-                'email': 'gokulp1806official@gmail.com',
+                'email': 'dharshankumarlearn@gmail.com',
                 'first_name': 'Sirija',
                 'last_name': '',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'hlomailapi',
+                'email': 'hlomailapi@gmail.com',
+                'first_name': 'Staff',
+                'last_name': '6',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'ronnieallen2005',
+                'email': 'ronnieallen2005@gmail.com',
+                'first_name': 'Staff',
+                'last_name': '7',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'kevin.j.savarimuthu',
+                'email': 'kevin.j.savarimuthu@gmail.com',
+                'first_name': 'Staff',
+                'last_name': '8',
+                'title': 'Assistant Professor, Computer Science',
+                'department': 'Computer Science',
+                'is_hod': False
+            },
+            {
+                'username': 'sanjaysagar.main',
+                'email': 'sanjaysagar.main@gmail.com',
+                'first_name': 'Staff',
+                'last_name': '9',
                 'title': 'Assistant Professor, Computer Science',
                 'department': 'Computer Science',
                 'is_hod': False
@@ -129,7 +165,7 @@ class Command(BaseCommand):
         hod_data = [
             {
                 'username': 'grace.mary',
-                'email': 'dotdev.test@gmail.com',
+                'email': 'dotdev.atom@gmail.com',
                 'first_name': 'Grace Mary',
                 'last_name': 'Kanaga',
                 'title': 'Professor, Computer Science (HOD)',
@@ -236,11 +272,15 @@ class Command(BaseCommand):
         self.stdout.write('  Email: earnestkirubakaran@karunya.edu.in')
         self.stdout.write('  Email: ariesnathya@karunya.edu.in')
         self.stdout.write('\nFaculty - Regular (Password: faculty123):')
-        self.stdout.write('  Email: dicksone2006@gmail.com (Antony Taurshia)')
-        self.stdout.write('  Email: niranjan2005official@gmail.com (Nirmal)')
-        self.stdout.write('  Email: earni8105@gmail.com (Ebenezer)')
-        self.stdout.write('  Email: ariesnathya@gmail.com (Jenefa)')
-        self.stdout.write('  Email: gokulp1806official@gmail.com (Sirija)')
+        self.stdout.write('  Email: aparna6024@gmail.com (Antony Taurshia)')
+        self.stdout.write('  Email: aparnaj@karunya.edu.in (Nirmal)')
+        self.stdout.write('  Email: premadevasri639@gmail.com (Ebenezer)')
+        self.stdout.write('  Email: dharshankumarj.dev@gmail.com (Jenefa)')
+        self.stdout.write('  Email: dharshankumarlearn@gmail.com (Sirija)')
+        self.stdout.write('  Email: hlomailapi@gmail.com (Staff 6)')
+        self.stdout.write('  Email: ronnieallen2005@gmail.com (Staff 7)')
+        self.stdout.write('  Email: kevin.j.savarimuthu@gmail.com (Staff 8)')
+        self.stdout.write('  Email: sanjaysagar.main@gmail.com (Staff 9)')
         self.stdout.write('\nFaculty - HOD (Password: faculty123):')
-        self.stdout.write('  Email: dotdev.test@gmail.com (Grace Mary Kanaga) [HOD]')
+        self.stdout.write('  Email: dotdev.atom@gmail.com (Grace Mary Kanaga) [HOD]')
         self.stdout.write('─' * 50)
