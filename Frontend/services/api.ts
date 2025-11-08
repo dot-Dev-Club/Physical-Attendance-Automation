@@ -8,7 +8,7 @@
 import { User, Role, AttendanceRequest, RequestStatus } from '../types';
 
 // API Base URL - Update this for production
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = 'https://attendance-api.atom.org.in/api';
 
 // Helper function to get auth token from sessionStorage
 const getAuthToken = (): string | null => {
