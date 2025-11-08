@@ -205,7 +205,9 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """
-        Create attendance request(s) - supports single and multiple days.
+        Create attendance request - supports single student or bulk students.
+        Students can create requests for themselves or for bulk students (team/group).
+        Same approval flow: Student creates → Mentor approves → HOD approves → Email to period faculty
         """
         if request.user.role != 'Student':
             return Response({
@@ -220,37 +222,41 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         validated_data = serializer.validated_data
-        created_requests = []
         
-        # Handle single day request
-        if 'date' in validated_data:
-            # Get event coordinator faculty by ID
-            event_coordinator_faculty_id = validated_data.get('eventCoordinatorFacultyId', validated_data.get('event_coordinator_faculty_id'))
-            event_coordinator_faculty = None
+        # Check if this is a bulk request
+        is_bulk = 'bulkStudents' in validated_data and validated_data['bulkStudents']
+        
+        # Get event coordinator faculty by ID
+        event_coordinator_faculty_id = validated_data.get('eventCoordinatorFacultyId', validated_data.get('event_coordinator_faculty_id'))
+        event_coordinator_faculty = None
+        
+        if event_coordinator_faculty_id:
+            if isinstance(event_coordinator_faculty_id, str):
+                event_coordinator_faculty_id = event_coordinator_faculty_id.strip()
+            else:
+                event_coordinator_faculty_id = str(event_coordinator_faculty_id)
             
-            # Only try to get faculty if ID is provided and not empty
             if event_coordinator_faculty_id:
-                # Convert to string if it's a UUID object, handle both string and UUID types
-                if isinstance(event_coordinator_faculty_id, str):
-                    event_coordinator_faculty_id = event_coordinator_faculty_id.strip()
-                else:
-                    event_coordinator_faculty_id = str(event_coordinator_faculty_id)
-                
-                if event_coordinator_faculty_id:  # Check if not empty after conversion
-                    try:
-                        from .models import User
-                        event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
-                    except (User.DoesNotExist, ValueError):
-                        return Response({
-                            'error': {
-                                'message': 'Invalid event coordinator faculty ID',
-                                'code': 'INVALID_FACULTY',
-                                'statusCode': 400
-                            }
-                        }, status=status.HTTP_400_BAD_REQUEST)
-            
+                try:
+                    from .models import User
+                    event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
+                except (User.DoesNotExist, ValueError):
+                    return Response({
+                        'error': {
+                            'message': 'Invalid event coordinator faculty ID',
+                            'code': 'INVALID_FACULTY',
+                            'statusCode': 400
+                        }
+                    }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create the attendance request
+        if is_bulk:
+            # Bulk request - Student applying for multiple students (team/group)
             attendance_request = AttendanceRequest.objects.create(
-                student=request.user,
+                student=request.user,  # Student who created the bulk request
+                is_bulk_request=True,
+                bulk_students=validated_data['bulkStudents'],
+                created_by=request.user,  # Same as student for tracking
                 date=validated_data['date'],
                 periods=validated_data['periods'],
                 period_faculty_mapping=validated_data.get('periodFacultyMapping', validated_data.get('period_faculty_mapping', {})),
@@ -260,57 +266,26 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                 purpose=validated_data['purpose'],
                 status='PENDING_MENTOR'
             )
-            created_requests.append(attendance_request)
-        
-        # Handle multiple days request
-        elif 'requests' in validated_data:
-            for req_data in validated_data['requests']:
-                # Get event coordinator faculty by ID
-                event_coordinator_faculty_id = req_data.get('eventCoordinatorFacultyId', req_data.get('event_coordinator_faculty_id'))
-                event_coordinator_faculty = None
-                
-                # Only try to get faculty if ID is provided and not empty
-                if event_coordinator_faculty_id:
-                    # Convert to string if it's a UUID object, handle both string and UUID types
-                    if isinstance(event_coordinator_faculty_id, str):
-                        event_coordinator_faculty_id = event_coordinator_faculty_id.strip()
-                    else:
-                        event_coordinator_faculty_id = str(event_coordinator_faculty_id)
-                    
-                    if event_coordinator_faculty_id:  # Check if not empty after conversion
-                        try:
-                            from .models import User
-                            event_coordinator_faculty = User.objects.get(id=event_coordinator_faculty_id, role='Faculty')
-                        except (User.DoesNotExist, ValueError):
-                            return Response({
-                                'error': {
-                                    'message': f'Invalid event coordinator faculty ID: {event_coordinator_faculty_id}',
-                                    'code': 'INVALID_FACULTY',
-                                    'statusCode': 400
-                                }
-                            }, status=status.HTTP_400_BAD_REQUEST)
-                
-                attendance_request = AttendanceRequest.objects.create(
-                    student=request.user,
-                    date=req_data['date'],
-                    periods=req_data['periods'],
-                    period_faculty_mapping=req_data.get('periodFacultyMapping', req_data.get('period_faculty_mapping', {})),
-                    event_coordinator=req_data.get('eventCoordinator', req_data.get('event_coordinator')),
-                    event_coordinator_faculty=event_coordinator_faculty,
-                    proof_faculty=req_data.get('proofFaculty', req_data.get('proof_faculty')),
-                    purpose=req_data['purpose'],
-                    status='PENDING_MENTOR'
-                )
-                created_requests.append(attendance_request)
-        
-        # Serialize response
-        response_serializer = AttendanceRequestSerializer(created_requests, many=True)
-        
-        # Return single object for single day, array for multiple days
-        if len(created_requests) == 1:
-            return Response(response_serializer.data[0], status=status.HTTP_201_CREATED)
         else:
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            # Single student request
+            attendance_request = AttendanceRequest.objects.create(
+                student=request.user,
+                is_bulk_request=False,
+                bulk_students=[],
+                created_by=request.user,
+                date=validated_data['date'],
+                periods=validated_data['periods'],
+                period_faculty_mapping=validated_data.get('periodFacultyMapping', validated_data.get('period_faculty_mapping', {})),
+                event_coordinator=validated_data.get('eventCoordinator', validated_data.get('event_coordinator')),
+                event_coordinator_faculty=event_coordinator_faculty,
+                proof_faculty=validated_data.get('proofFaculty', validated_data.get('proof_faculty')),
+                purpose=validated_data['purpose'],
+                status='PENDING_MENTOR'
+            )
+        
+        # Serialize and return response
+        response_serializer = AttendanceRequestSerializer(attendance_request)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
     def destroy(self, request, *args, **kwargs):
         """
@@ -447,6 +422,22 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
             hod_faculty_profile = hod_user.faculty_profile if hasattr(hod_user, 'faculty_profile') else None
             hod_title = hod_faculty_profile.title if hod_faculty_profile else "HOD"
             
+            # Determine if bulk request
+            is_bulk = request_instance.is_bulk_request
+            
+            # Prepare student information
+            if is_bulk:
+                student_count = len(request_instance.bulk_students)
+                students_list = "\n".join([
+                    f"  - {s['registerNumber']}: {s['name']}" 
+                    for s in request_instance.bulk_students
+                ])
+                student_info = f"Bulk Request ({student_count} students):\n{students_list}"
+                subject_student = f"{student_count} Students"
+            else:
+                student_info = f"Name:          {request_instance.student.get_full_name()}\nEmail:         {request_instance.student.email}"
+                subject_student = request_instance.student.get_full_name()
+            
             # Get unique faculty IDs
             faculty_ids = set(period_faculty_mapping.values())
             
@@ -459,19 +450,18 @@ class AttendanceRequestViewSet(viewsets.ModelViewSet):
                     periods_str = ', '.join(f"Period {p}" for p in sorted(their_periods, key=int))
                     
                     # Email content
-                    subject = f'Physical Attendance Approved - {request_instance.student.get_full_name()} - {request_instance.date.strftime("%d-%m-%Y")}'
+                    subject = f'Physical Attendance Approved - {subject_student} - {request_instance.date.strftime("%d-%m-%Y")}'
                     
                     message = f"""Dear {faculty_user.get_full_name()},
 
 I hope this email finds you well.
 
-This is to inform you that a physical attendance request has been approved for the following student:
+This is to inform you that a physical attendance request has been approved for the following:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STUDENT DETAILS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Name:          {request_instance.student.get_full_name()}
-Email:         {request_instance.student.email}
+{student_info}
 Date:          {request_instance.date.strftime('%B %d, %Y')} ({request_instance.date.strftime('%A')})
 Your Period(s): {periods_str}
 
@@ -483,7 +473,7 @@ Event Coordinator:  {request_instance.event_coordinator}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-The student has been granted physical attendance for the mentioned period(s) in your class. Please mark their attendance accordingly.
+The {"students have" if is_bulk else "student has"} been granted physical attendance for the mentioned period(s) in your class. Please mark their attendance accordingly.
 
 If you have any questions or concerns regarding this approval, please feel free to contact me.
 
