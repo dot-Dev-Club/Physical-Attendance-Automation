@@ -30,14 +30,17 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
 
     // Fetch requests from backend
     const fetchRequests = async () => {
+        console.log('📡 AttendanceContext - Fetching requests...');
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const requests = await attendanceAPI.getRequests();
             // Ensure requests is always an array
             const requestsArray = Array.isArray(requests) ? requests : [];
+            console.log('✅ AttendanceContext - Fetched', requestsArray.length, 'requests');
+            console.log('📊 Bulk requests:', requestsArray.filter(r => r.isBulkRequest).length);
             setState(prev => ({ ...prev, requests: requestsArray, isLoading: false }));
         } catch (error) {
-            console.error('Failed to fetch requests:', error);
+            console.error('❌ AttendanceContext - Failed to fetch requests:', error);
             setState(prev => ({ 
                 ...prev, 
                 requests: [], // Reset to empty array on error
@@ -63,9 +66,16 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
     }, [user]);
 
     const addRequest = async (request: Omit<AttendanceRequest, 'id' | 'status'>) => {
+        console.log('📤 AttendanceContext - Creating request:', {
+            isBulk: !!(request as any).bulkStudents,
+            bulkCount: (request as any).bulkStudents?.length || 0,
+            date: request.date,
+            periods: request.periods
+        });
+
         try {
-            // Create request payload for backend (use single day format)
-            await attendanceAPI.createRequest({
+            // Create request payload for backend
+            const payload: any = {
                 date: request.date,
                 periods: request.periods,
                 periodFacultyMapping: request.periodFacultyMapping,
@@ -73,34 +83,47 @@ export const AttendanceProvider: React.FC<{ children: ReactNode }> = ({ children
                 eventCoordinatorFacultyId: request.eventCoordinatorFacultyId,
                 proofFaculty: request.proofFaculty,
                 purpose: request.purpose,
-            });
+            };
+
+            // Add bulk students if present
+            if ((request as any).bulkStudents) {
+                payload.bulkStudents = (request as any).bulkStudents;
+                console.log('📋 Including bulk students:', payload.bulkStudents.length);
+            }
+
+            await attendanceAPI.createRequest(payload);
+            console.log('✅ AttendanceContext - Request created successfully');
             
             // Refresh requests list
             await fetchRequests();
         } catch (error) {
-            console.error('Failed to create request:', error);
+            console.error('❌ AttendanceContext - Failed to create request:', error);
             throw error;
         }
     };
 
     const updateRequestStatus = async (id: string, status: RequestStatus, reason?: string) => {
+        console.log('🔄 AttendanceContext - Updating request status:', { id, status, reason });
         try {
             await attendanceAPI.updateRequestStatus(id, status, reason);
+            console.log('✅ AttendanceContext - Status updated successfully');
             // Refresh requests list
             await fetchRequests();
         } catch (error) {
-            console.error('Failed to update request status:', error);
+            console.error('❌ AttendanceContext - Failed to update request status:', error);
             throw error;
         }
     };
 
     const deleteRequest = async (id: string) => {
+        console.log('🗑️  AttendanceContext - Deleting request:', id);
         try {
             await attendanceAPI.deleteRequest(id);
+            console.log('✅ AttendanceContext - Request deleted successfully');
             // Refresh requests list
             await fetchRequests();
         } catch (error) {
-            console.error('Failed to delete request:', error);
+            console.error('❌ AttendanceContext - Failed to delete request:', error);
             throw error;
         }
     };

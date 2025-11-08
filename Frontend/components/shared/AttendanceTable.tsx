@@ -64,9 +64,23 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ requests, title, acti
                         {requests.map((req) => (
                             <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-slate-900 dark:text-white">
-                                        {req.studentName}
-                                    </div>
+                                    {req.isBulkRequest ? (
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                                                    👥 BULK
+                                                </span>
+                                                {req.bulkStudents?.length || 0} Students
+                                            </div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                Created by: {req.createdByName || req.studentName}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm font-medium text-slate-900 dark:text-white">
+                                            {req.studentName}
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm text-slate-700 dark:text-slate-300">
@@ -92,8 +106,24 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ requests, title, acti
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="text-sm text-slate-700 dark:text-slate-300 max-w-[200px] truncate" title={req.purpose}>
-                                        {req.purpose}
+                                    <div className="text-sm text-slate-700 dark:text-slate-300 max-w-[200px]">
+                                        <div className="truncate" title={req.purpose}>
+                                            {req.purpose}
+                                        </div>
+                                        {req.isBulkRequest && req.bulkStudents && req.bulkStudents.length > 0 && (
+                                            <details className="mt-2">
+                                                <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                                                    View {req.bulkStudents.length} students
+                                                </summary>
+                                                <div className="mt-2 space-y-1 text-xs bg-slate-50 dark:bg-slate-700 p-2 rounded border border-slate-200 dark:border-slate-600 max-h-32 overflow-y-auto">
+                                                    {req.bulkStudents.map((student, idx) => (
+                                                        <div key={idx} className="text-slate-700 dark:text-slate-300">
+                                                            <span className="font-semibold">{student.registerNumber}</span>: {student.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </details>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
