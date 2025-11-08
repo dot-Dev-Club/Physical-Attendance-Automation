@@ -173,7 +173,7 @@ export const attendanceAPI = {
     },
 
     /**
-     * Create new attendance request (single or multiple days)
+     * Create new attendance request (single or bulk)
      */
     createRequest: async (
         request: {
@@ -184,6 +184,7 @@ export const attendanceAPI = {
             eventCoordinatorFacultyId?: string;
             proofFaculty?: string;
             purpose?: string;
+            bulkStudents?: Array<{ registerNumber: string; name: string }>; // For bulk requests
             requests?: Array<{
                 date: string;
                 periods: number[];
@@ -195,6 +196,13 @@ export const attendanceAPI = {
             }>;
         }
     ): Promise<AttendanceRequest | AttendanceRequest[]> => {
+        console.log('📡 API - Creating attendance request:', {
+            isBulk: !!request.bulkStudents,
+            bulkCount: request.bulkStudents?.length || 0,
+            date: request.date,
+            periods: request.periods
+        });
+
         const response = await fetch(`${API_BASE_URL}/attendance/requests/`, {
             method: 'POST',
             headers: getAuthHeaders(),
@@ -203,6 +211,7 @@ export const attendanceAPI = {
 
         if (!response.ok) {
             const error = await response.json();
+            console.error('❌ API - Request creation failed:', error);
             throw new APIError(
                 error.error?.message || 'Failed to create request',
                 response.status,
@@ -210,7 +219,9 @@ export const attendanceAPI = {
             );
         }
 
-        return await response.json();
+        const result = await response.json();
+        console.log('✅ API - Request created successfully:', result);
+        return result;
     },
 
     /**
